@@ -24,7 +24,7 @@ impl Shell {
     pub fn run(&mut self) -> Result<()> {
 
         while let Some(mut line) = self.get_line()? {
-            line.execute()?;
+            line.execute(self)?;
         }
 
         Ok(())
@@ -41,5 +41,9 @@ impl Shell {
         } else {
             Ok(None)
         }
+    }
+
+    pub fn get_builtin(&self, command: &str) -> Option<&Builtin> {
+        self.builtins.get(command) 
     }
 }

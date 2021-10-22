@@ -6,8 +6,12 @@ pub type Builtin = fn(&mut Shell, Vec::<String>) -> Result<()>;
 
 pub fn chdir(smsh: &mut Shell, args: Vec::<String>) -> Result<()> {
 
-    if let Some(dir) = env::var_os("HOME") {
-        env::set_current_dir(dir);
+    if args.len() == 1 { 
+        if let Some(dir) = env::var_os("HOME") {
+            env::set_current_dir(dir);
+        }
+    } else {
+        env::set_current_dir(&args[1]);
     }
 
     Ok(())
