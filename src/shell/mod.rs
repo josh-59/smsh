@@ -1,9 +1,11 @@
 use anyhow::Result;
 use super::source::{Source, TTY};
 use super::line::Line;
-use super::builtins::{Builtin, chdir};
 
 use std::collections::HashMap;
+
+mod modules;
+use modules::*;
 
 pub struct Shell {
     sources: Vec<Box<dyn Source>>,
@@ -15,10 +17,13 @@ impl Shell {
         let tty = TTY::new()?;
         let sources = vec![tty];
 
-        let mut builtins = HashMap::<&'static str, Builtin>::new();
-        builtins.insert("cd", chdir);
+        let builtins = HashMap::<&'static str, Builtin>::new();
 
-        Ok(Shell{ sources, builtins })
+        let mut smsh = Shell { sources, builtins };
+
+        load_module(&mut smsh, Module::Core)?;
+
+        Ok(smsh)
     }
 
     pub fn run(&mut self) -> Result<()> {

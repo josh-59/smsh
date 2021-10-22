@@ -3,7 +3,6 @@ use anyhow::Result;
 mod shell;
 mod source;
 mod line;
-mod builtins;
 
 use shell::Shell;
 
