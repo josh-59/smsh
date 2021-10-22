@@ -31,4 +31,11 @@ From there, expansion within `smsh` forms a mini-language.
 Like expansions, conditional expressions form a mini-language within `smsh`.
 
 ## Modularity
+The core of `smsh` is modular: Builtins and shell variables belong to 
+modules, and can be loaded and unloaded dynamically.
+This will allow easy and arbitrary expansion of capabilities as the
+shell matures.
+
+## Contributing
+Anyone is welcome to contribute to the project! Ideas and suggestions are welcome as well.
 
