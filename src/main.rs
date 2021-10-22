@@ -1,14 +1,19 @@
 use anyhow::Result;
-use std::io;
+
+mod shell;
+mod source;
+mod line;
+
+use shell::Shell;
 
 fn main() -> Result<()> {
 
-    let stdin = io::stdin();
-    let mut buffer = String::new();
+    let mut smsh = Shell::new()?;
 
-    stdin.read_line(&mut buffer)?;
-
-    println!("{}", buffer.trim());
+    while let Err(e) = smsh.run() {
+        eprintln!("smsh: {}", e);
+    }
 
     Ok(())
+
 }
