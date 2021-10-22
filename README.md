@@ -19,11 +19,16 @@ there are three major concepts to be understood:
 
 ## Pipelines
 Each line given to `smsh` is interpretted as a pipeline.
-The last element in a pipeline is executed in the context of the current shell.
+The last element in a pipeline is executed in the context of the current shell
+(if it is a builtin or user-defined function).
 
 ## Expansions
 Expansions are _Strictly Explicit,_ and occur within braces, `{}`.
 From there, expansion within `smsh` forms a mini-language.
 `smsh` does not support aliasing.
 
+## Conditionals
+Like expansions, conditional expressions form a mini-language within `smsh`.
+
+## Modularity
 

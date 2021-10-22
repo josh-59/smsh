@@ -1,7 +1,7 @@
 use anyhow::Result;
 use nix::unistd::{self, fork, ForkResult};
 use nix::sys::wait::wait;
-use std::ffi::{CString, CStr};
+use std::ffi::CString;
 
 use std::fmt;
 
@@ -18,7 +18,7 @@ impl Line {
 
     pub fn execute(&mut self) -> Result<()> {
         match unsafe{fork()?} {
-            ForkResult::Parent { child, .. } => {
+            ForkResult::Parent { child: _, .. } => {
                 wait()?;
                 Ok(())
             }

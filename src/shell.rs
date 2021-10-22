@@ -1,17 +1,24 @@
 use anyhow::Result;
 use super::source::{Source, TTY};
 use super::line::Line;
+use super::builtins::{Builtin, chdir};
+
+use std::collections::HashMap;
 
 pub struct Shell {
-    sources: Vec<Box<dyn Source>>
+    sources: Vec<Box<dyn Source>>,
+    builtins: HashMap<&'static str, Builtin>,
 }
 
 impl Shell {
     pub fn new() -> Result<Shell> {
         let tty = TTY::new()?;
-
         let sources = vec![tty];
-        Ok(Shell{ sources })
+
+        let mut builtins = HashMap::<&'static str, Builtin>::new();
+        builtins.insert("cd", chdir);
+
+        Ok(Shell{ sources, builtins })
     }
 
     pub fn run(&mut self) -> Result<()> {
