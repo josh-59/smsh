@@ -5,6 +5,7 @@ use super::line::Line;
 
 pub trait Source {
     fn get_line(&mut self, prompt: &str) -> Result<Option<Line>>;
+    fn is_tty(&self) -> bool;
 }
 
 pub struct TTY {
@@ -32,5 +33,9 @@ impl Source for TTY {
         let line = Line::new(buffer)?;
 
         Ok(Some(line))
+    }
+
+    fn is_tty(&self) -> bool {
+        true
     }
 }

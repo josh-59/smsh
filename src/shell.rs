@@ -15,9 +15,11 @@ impl Shell {
     }
 
     pub fn run(&mut self) -> Result<()> {
-        while let Some(line) = self.get_line()? {
-            println!("{}", line);
+
+        while let Some(mut line) = self.get_line()? {
+            line.execute()?;
         }
+
         Ok(())
     }
 
