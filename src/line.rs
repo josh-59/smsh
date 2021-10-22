@@ -5,16 +5,19 @@ use std::ffi::CString;
 use std::fmt;
 
 use super::shell::Shell;
+use super::source::SourceKind;
 
 pub struct Line {
-    pub rawline: String,
+    rawline: String,
+    line_num: usize,
+    source: SourceKind,
 }
 
 impl Line {
-    pub fn new(s: String) -> Result<Line> {
-        let rawline = s.trim().to_string();
+    pub fn new(rawline: String, line_num: usize, source: SourceKind) -> Result<Line> {
+        let rawline = rawline.trim().to_string();
 
-        Ok( Line { rawline } )
+        Ok( Line { rawline, line_num, source } )
     }
 
     pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
@@ -51,6 +54,10 @@ impl Line {
 
 impl fmt::Display for Line {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.rawline)
+        match self.source {
+            SourceKind::TTY => {
+                write!(f, "TTY line {}:\n{}", self.line_num, self.rawline)
+            }
+        }
     }
 }
