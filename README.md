@@ -7,8 +7,9 @@ It will respect the Unix philosophy, and offer a readable, even Pythonic, script
 What Rust is to systems programming, `smsh` is intended to be to shells.
 
 
-A shell that is simple to understand
-To that end, there are three major concepts to be understood:
+As a shell that is simple to understand, 
+there are three major concepts to be understood:
+
     - Pipelines
     - Expansions
     - Conditionals
