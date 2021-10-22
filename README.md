@@ -9,7 +9,6 @@ What Rust is to systems programming, `smsh` is intended to be to shells.
 
 As a shell that is simple to understand, 
 there are three major concepts to be understood:
-
-    - Pipelines
-    - Expansions
-    - Conditionals
+- Pipelines
+- Expansions
+- Conditionals
