@@ -23,7 +23,7 @@ impl TTY {
 
         let mut buffer = String::new();
 
-        print!(">> ");
+        print!("> ");
         io::stdout().flush()?;
 
         self.stdin.read_line(&mut buffer)?;

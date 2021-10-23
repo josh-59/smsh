@@ -1,5 +1,6 @@
 use anyhow::Result;
-use super::sources::{Source, tty::TTY};
+use nix::unistd::getuid;
+use super::sources::{Source, tty::TTY, BufferSource};
 use super::line::Line;
 
 use std::collections::HashMap;
@@ -39,7 +40,13 @@ impl Shell {
 
     fn get_line(&mut self) -> Result<Option<Line>> {
         if let Some(mut source) = self.sources.pop() {
-            if let Some(line) = source.get_line(">> ")? {
+            let prompt = if getuid().is_root() {
+                "# "
+            } else {
+                "$ "
+            };
+
+            if let Some(line) = source.get_line(&prompt)? {
                 self.sources.push(source);
                 Ok(Some(line))
             } else {
@@ -68,5 +75,9 @@ impl Shell {
         } else {
             None
         }
+    }
+
+    pub fn push_subshell_command(&mut self, line: String) {
+        self.sources.push(BufferSource::new(vec![line]));
     }
 }

@@ -9,8 +9,10 @@ pub fn chdir(_smsh: &mut Shell, args: Vec::<String>) -> Result<()> {
         if let Some(dir) = env::var_os("HOME") {
             env::set_current_dir(dir)?;
         }
-    } else {
+    } else if args.len() == 2{
         env::set_current_dir(&args[1])?;
+    } else {
+        return Err(anyhow!("cd: Too many arguments"));
     }
 
     Ok(())

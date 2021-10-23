@@ -77,7 +77,7 @@ impl Line {
         let mut words = get_words_from_str(&self.rawline)?;
 
         for word in &mut words {
-            word.expand(smsh);
+            word.expand(smsh)?;
         }
 
         if words.len() == 0 {
@@ -113,6 +113,9 @@ impl fmt::Display for Line {
         match self.source {
             SourceKind::TTY => {
                 write!(f, "TTY line {}:\n{}", self.line_num, self.rawline)
+            }
+            SourceKind::Buffer => {
+                write!(f, "Buffer line {}:\n{}", self.line_num, self.rawline)
             }
         }
     }
