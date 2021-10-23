@@ -19,11 +19,12 @@ use std::io::Read;
 use nix::unistd::{self, fork, pipe, ForkResult, close, dup2};
 use nix::sys::wait::wait;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Quote {
     SingleQuoted,
     DoubleQuoted,
     Unquoted,
+    Expansion(usize),
 }
 
 #[derive(Clone, Copy)]
@@ -51,7 +52,7 @@ pub struct Word {
 impl Word {
     fn new(text: String, quote: Quote) -> Result<Word> {
         let expansion = match quote {
-            Quote::Unquoted | Quote::DoubleQuoted => {
+            Quote::Unquoted | Quote::DoubleQuoted | Quote::Expansion(_) => {
                 get_expansion(&text)
             }
             Quote::SingleQuoted=> {
@@ -186,7 +187,7 @@ pub fn get_words_from_str(line: &str) -> Result<Vec<Word>> {
                     ' ' | '\n' => {
                         if word_text.len() > 0 {
                             words.push(Word::new(word_text, quoted)?);
-                            word_text= String::new();
+                            word_text = String::new();
                         }
                     }
                     '\'' => {
@@ -194,6 +195,10 @@ pub fn get_words_from_str(line: &str) -> Result<Vec<Word>> {
                     }
                     '\"' => {
                         quoted = Quote::DoubleQuoted;
+                    }
+                    '{' => {
+                        word_text.push(ch);
+                        quoted = Quote::Expansion(1);
                     }
                     _ => {
                         word_text.push(ch);
@@ -203,7 +208,7 @@ pub fn get_words_from_str(line: &str) -> Result<Vec<Word>> {
             Quote::SingleQuoted => {
                 if ch == '\'' {
                     words.push(Word::new(word_text, quoted)?);
-                    word_text= String::new();
+                    word_text = String::new();
                     quoted = Quote::Unquoted;
                 } else {
                     word_text.push(ch);
@@ -212,10 +217,25 @@ pub fn get_words_from_str(line: &str) -> Result<Vec<Word>> {
             Quote::DoubleQuoted => {
                 if ch == '\"' {
                     words.push(Word::new(word_text, quoted)?);
-                    word_text= String::new();
+                    word_text = String::new();
                     quoted = Quote::Unquoted;
                 } else {
                     word_text.push(ch);
+                }
+            }
+            Quote::Expansion(n) => {
+                if ch == '{' {
+                    quoted = Quote::Expansion(n+1);
+                } else if ch == '}' {
+                    quoted = Quote::Expansion(n-1);
+                } 
+
+                word_text.push(ch);
+
+                if quoted == Quote::Expansion(0) {
+                    words.push(Word::new(word_text, quoted)?);
+                    word_text = String::new();
+                    quoted = Quote::Unquoted;
                 }
             }
         }
