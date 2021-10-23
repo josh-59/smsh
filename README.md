@@ -1,6 +1,7 @@
 # smsh
 Simple Shell: A shell for the next generation
 
+Status: Not working
 
 `smsh` will be a full-featured, resonably fast, and easy to use shell.
 It will respect the Unix philosophy, and offer a readable, even Pythonic, scripting language.
@@ -10,6 +11,9 @@ What Rust is to systems programming, `smsh` is intended to be to shells.
 not cross-platform.
 Its codebase strives for correctness and simplicity, at the expense of speed.
 It is intended to be the single friendliest interactive shell in existence.
+
+For the new user, it promises to be easier to learn than Thomspon-based shells;
+for the veteran, it promises to stay out of your way.
 
 As a shell that is easy to understand, 
 there are three major concepts to be understood:
@@ -39,3 +43,30 @@ shell matures.
 ## Contributing
 Anyone is welcome to contribute to the project! Ideas and suggestions are welcome as well.
 
+
+## Feature List
+### Basic Shell Stuff
+[ ] Pipelining
+[ ] Redirection
+
+### Expansion
+[ ] Recursive Expansions
+[ ] Subshell Expansion
+[ ] Variable Expansion
+[ ] Environment Variable Expansion
+[ ] Expansion Modifiers
+
+### Scripting Stuff
+[ ] File Source
+[ ] Blocks and indentations
+[ ] User-defined Functions
+[ ] If Expressions
+[ ] While Expressions
+[ ] Conditional Mini-language
+[ ] Interpreter Scripts
+
+### Interactive Stuff
+[ ] Reedline usage
+[ ] User-defined (left) prompt
+[ ] User-defined (right) prompt
+[ ] Completion
