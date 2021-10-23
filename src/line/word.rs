@@ -1,4 +1,14 @@
+// This section is very dirty; needs to be rewritten.
+// Thinking, Word enum s.t.
+// pub enum Word {
+//      VariableExpansion(String)
+//      EnvironmentExpansion(String)
+//      SubshellExpansion(String)
+//      PlainString(String)
+//      }
+
 use anyhow::Result;
+use crate::shell::Shell;
 
 #[derive(Clone, Copy)]
 pub enum Quote {
@@ -9,13 +19,14 @@ pub enum Quote {
 
 #[derive(Clone, Copy)]
 pub enum Expansion {
-    None,           // If single-quoted
+    None,
     Variable,
     Environment,
-    Subshell
+    Subshell,
+    Unknown,
 }
 
-pub enum WordSeparator {
+pub enum Separator {
     None,           // If single- or double-quoted
     Whitespace,     // Default
     Line,           
@@ -23,9 +34,9 @@ pub enum WordSeparator {
 }
 
 pub struct Word {
-    text: String,
+    pub text: String,
     expansion: Expansion,
-    separator: WordSeparator,
+    separator: Separator,
 }
 
 impl Word {
@@ -38,16 +49,58 @@ impl Word {
                 Expansion::None
             }
         };
-        Ok(Word { text, expansion, separator: WordSeparator::Whitespace })
+
+        Ok(Word { text, expansion, separator: Separator::Whitespace })
     }
 
     pub fn text<'a>(&'a self) -> &'a str {
         &self.text
     }
+
+    pub fn expand(&mut self, smsh: &mut Shell) {
+        match self.expansion {
+            Expansion::Variable => {
+                let mut key = self.text[1..].to_string();
+                key.pop();
+
+                if let Some(val) = smsh.get_user_variable(&key) {
+                    self.text = val;
+                } else {
+                    self.text.clear();
+                }
+            }
+            _ => {
+            }
+        }
+    }
 }
 
 fn get_expansion(text: &str) -> Expansion {
-    Expansion::None
+    if text.len() < 3 {
+        Expansion::None
+    } else if text.starts_with("{") {
+        if text.ends_with("}") {
+            Expansion::Variable
+        } else {
+            Expansion::None
+        }
+    } else if text.starts_with("!{") {
+        if text.ends_with("}") {
+            Expansion::Subshell
+        } else {
+            Expansion::None
+        }
+    } else if text.starts_with("e{") {
+        if text.ends_with("}") {
+            Expansion::Environment
+        } else {
+            Expansion::None
+        } 
+    } else if text[0..2].contains("{") {
+        Expansion::Unknown
+    } else {
+        Expansion::None
+    }
 }
 
 pub fn get_words_from_str(line: &str) -> Result<Vec<Word>> {

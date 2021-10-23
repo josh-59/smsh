@@ -10,6 +10,7 @@ use modules::*;
 pub struct Shell {
     sources: Vec<Box<dyn Source>>,
     builtins: HashMap<&'static str, Builtin>,
+    user_variables: HashMap<String, String>,
 }
 
 impl Shell {
@@ -18,8 +19,9 @@ impl Shell {
         let sources = vec![tty];
 
         let builtins = HashMap::<&'static str, Builtin>::new();
+        let user_variables = HashMap::<String, String>::new();
 
-        let mut smsh = Shell { sources, builtins };
+        let mut smsh = Shell { sources, builtins, user_variables };
 
         load_module(&mut smsh, Module::Core)?;
 
@@ -54,5 +56,17 @@ impl Shell {
 
     pub fn clear_sources(&mut self) {
         self.sources.clear();
+    }
+
+    pub fn insert_user_variable(&mut self, key: String, val: String) {
+        self.user_variables.insert(key, val);
+    }
+
+    pub fn get_user_variable(&mut self, key: &str) -> Option<String> {
+        if let Some(val) = self.user_variables.get(key) {
+            Some(val.clone())
+        } else {
+            None
+        }
     }
 }

@@ -34,8 +34,6 @@ impl Line {
 
         let rawline = rawline[leading_spaces..].to_string();
 
-        //TODO: If leading_spaces % 4 != 0, warning
-
         Line { rawline, line_num, source, indentation: leading_spaces / 4 } 
     }
 
@@ -76,7 +74,11 @@ impl Line {
 
     pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
 
-        let words = get_words_from_str(&self.rawline)?;
+        let mut words = get_words_from_str(&self.rawline)?;
+
+        for word in &mut words {
+            word.expand(smsh);
+        }
 
         if words.len() == 0 {
             return Ok(());

@@ -51,3 +51,23 @@ pub fn ulm_builtin(smsh: &mut Shell, args: Vec::<String>) -> Result<()> {
         Ok(())
     }
 }
+
+pub fn r#let(smsh: &mut Shell, args: Vec::<String>) -> Result<()> {
+    if args.len() < 4 {
+        return Err(anyhow!("Improper invocation of `let`"));
+    }
+
+    let key = args[1].clone();
+    let mut value = String::new();
+
+    for word in &args[3..] {
+        value.push_str(word);
+        value.push(' ');
+    }
+
+    value.pop();
+
+    smsh.insert_user_variable(key, value);
+
+    Ok(())
+}
