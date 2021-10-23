@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 mod shell;
-mod source;
+mod sources;
 mod line;
 
 use shell::Shell;

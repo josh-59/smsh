@@ -5,7 +5,7 @@ use std::ffi::CString;
 use std::fmt;
 
 use super::shell::Shell;
-use super::source::SourceKind;
+use super::sources::SourceKind;
 
 mod word;
 use word::get_words_from_str;

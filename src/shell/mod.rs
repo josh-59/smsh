@@ -1,5 +1,5 @@
 use anyhow::Result;
-use super::source::{Source, TTY};
+use super::sources::{Source, tty::TTY};
 use super::line::Line;
 
 use std::collections::HashMap;

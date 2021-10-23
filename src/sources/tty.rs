@@ -1,16 +1,8 @@
 use anyhow::Result;
 use std::io::{self, Stdin, Write};
 
-use super::line::Line;
-
-pub enum SourceKind {
-    TTY,
-}
-
-pub trait Source {
-    fn get_line(&mut self, prompt: &str) -> Result<Option<Line>>;
-    fn is_tty(&self) -> bool;
-}
+use crate::line::Line;
+use super::{Source, SourceKind};
 
 pub struct TTY {
     stdin: Stdin,
