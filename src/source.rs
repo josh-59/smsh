@@ -24,6 +24,20 @@ impl TTY {
         let source = Box::new(TTY{ stdin, line_num: 0});
         Ok(source)
     }
+
+    // Used to complete logical lines when they transcend physical
+    // lines
+    pub fn get_secondary_line(&mut self) -> Result<String> {
+
+        let mut buffer = String::new();
+
+        print!(">> ");
+        io::stdout().flush()?;
+
+        self.stdin.read_line(&mut buffer)?;
+
+        Ok(buffer)
+    }
 }
 
 impl Source for TTY {
@@ -36,7 +50,11 @@ impl Source for TTY {
         self.stdin.read_line(&mut buffer)?;
         self.line_num += 1;
 
-        let line = Line::new(buffer, self.line_num, SourceKind::TTY)?;
+        let mut line = Line::new(buffer, self.line_num, SourceKind::TTY);
+
+        while !line.is_complete() {
+            line.append(self.get_secondary_line()?)
+        }
 
         Ok(Some(line))
     }

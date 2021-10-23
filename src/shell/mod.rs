@@ -51,4 +51,8 @@ impl Shell {
     pub fn get_builtin(&self, command: &str) -> Option<&Builtin> {
         self.builtins.get(command) 
     }
+
+    pub fn clear_sources(&mut self) {
+        self.sources.clear();
+    }
 }
