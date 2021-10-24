@@ -48,13 +48,7 @@ impl Shell {
 
     fn get_line(&mut self) -> Result<Option<Line>> {
         if let Some(mut source) = self.sources.pop() {
-            let prompt = if getuid().is_root() {
-                "# "
-            } else {
-                "$ "
-            };
-
-            if let Some(line) = source.get_line(&prompt)? {
+            if let Some(line) = source.get_line(None)? {
                 self.sources.push(source);
                 Ok(Some(line))
             } else {
@@ -68,19 +62,22 @@ impl Shell {
     pub fn get_block(&mut self) -> Result<Vec<Line>> {
         let mut lines = Vec::<Line>::new();
 
-        let first_line = self.get_line()?.unwrap();
-        let source = first_line.source().clone();
-        let indent = first_line.indentation();
-        lines.push(first_line);
+        let first_line = self.get_line()?;
 
-        while let Some(line) = self.get_line()? {
-            if *line.source() == source && line.indentation() == indent {
-                lines.push(line);
-            } else {
-                self.push_source(BufferSource::new(vec![line]));
-                break;
+        if let Some(first_line) = self.get_line()? {
+            let source = first_line.source().clone();
+            let indent = first_line.indentation();
+            lines.push(first_line);
+
+            while let Some(line) = self.get_line()? {
+                if *line.source() == source && line.indentation() == indent {
+                    lines.push(line);
+                } else {
+                    self.push_source(BufferSource::new(vec![line]));
+                    break;
+                }
             }
-        }
+        } 
 
         Ok(lines)
     }

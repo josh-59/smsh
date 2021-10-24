@@ -1,4 +1,5 @@
 use anyhow::Result;
+use nix::unistd::getuid;
 use std::io::{self, Stdin, Write};
 
 use crate::line::Line;
@@ -17,8 +18,7 @@ impl TTY {
         Ok(source)
     }
 
-    // Used to complete logical lines when they transcend physical
-    // lines
+    // Used to complete logical lines when they transcend physical lines
     pub fn get_secondary_line(&mut self) -> Result<String> {
 
         let mut buffer = String::new();
@@ -33,7 +33,18 @@ impl TTY {
 }
 
 impl Source for TTY {
-    fn get_line(&mut self, prompt: &str) -> Result<Option<Line>> {
+    fn get_line(&mut self, prompt: Option<String>) -> Result<Option<Line>> {
+        let prompt = if let Some(p) = prompt {
+            p
+        } else {
+            if getuid().is_root() {
+                "# ".to_string()
+            } else {
+                "$ ".to_string()
+            }
+        };
+
+
         let mut buffer = String::new();
 
         print!("{}", prompt);

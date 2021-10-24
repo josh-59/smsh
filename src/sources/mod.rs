@@ -13,7 +13,7 @@ pub enum SourceKind {
 }
 
 pub trait Source {
-    fn get_line(&mut self, prompt: &str) -> Result<Option<Line>>;
+    fn get_line(&mut self, prompt: Option<String>) -> Result<Option<Line>>;
     fn is_tty(&self) -> bool; // TODO: Remove &self
 }
 
@@ -34,7 +34,7 @@ impl BufferSource {
 }
 
 impl Source for BufferSource {
-    fn get_line(&mut self, _prompt: &str) -> Result<Option<Line>> {
+    fn get_line(&mut self, _prompt: Option<String>) -> Result<Option<Line>> {
         if self.line_num == self.lines.len() {
             Ok(None)
         } else {
