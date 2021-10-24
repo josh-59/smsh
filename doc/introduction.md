@@ -7,16 +7,10 @@ Introduction
 Simple shell is a shell for the next generation.
 It is intended to be full-featured, resonably fast, and most of all, easy to use.
 
-
-It will respect the Unix philosophy, and offer a readable, even Pythonic, scripting language.
-What Rust is to systems programming, `smsh` is intended to be to shells.
-
-`smsh` works on any Unix-like operating system.
+`smsh` works on any Unix-like operating system (and it is a bug if this is not the case).
 Its codebase strives for correctness and simplicity, at the expense of speed.
 It is intended to be the single friendliest interactive shell in existence.
 
-For the new user, it promises to be easier to learn than Thomspon-based shells;
-for the veteran, it promises to stay out of your way.
 
 As a shell that is easy to understand, 
 there are three major concepts to be understood:
