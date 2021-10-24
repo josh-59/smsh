@@ -67,8 +67,30 @@ impl Shell {
         }
     }
 
+    pub fn get_block(&mut self) -> Result<Vec<Line>> {
+        let mut lines = Vec::<Line>::new();
+
+        let first_line = self.get_line()?.unwrap();
+        let source = first_line.source().clone();
+        lines.push(first_line);
+
+        while let Some(line) = self.get_line()? {
+            if *line.source() == source {
+                lines.push(line);
+            } 
+            // XXX: Not complete!
+
+        }
+
+        Ok(lines)
+    }
+
     pub fn get_builtin(&self, command: &str) -> Option<&Builtin> {
         self.builtins.get(command) 
+    }
+
+    pub fn push_source(&mut self, source: Box<dyn Source>) {
+        self.sources.push(source)
     }
 
     pub fn clear_sources(&mut self) {
@@ -87,7 +109,14 @@ impl Shell {
         }
     }
 
-    pub fn push_subshell_command(&mut self, line: String) {
-        self.sources.push(BufferSource::new(vec![line]));
+    pub fn push_user_function(&mut self, args: Vec<String>) -> bool {
+        if args.is_empty() {
+            false
+        } else if let Some(func) = self.user_functions.get(&args[0]) {
+            self.sources.push(func.build_source());
+            true
+        } else {
+            false
+        }
     }
 }

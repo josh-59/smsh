@@ -5,9 +5,10 @@ use super::line::Line;
 pub mod tty;
 pub mod user_function;
 
+#[derive(PartialEq, Eq, Clone)]
 pub enum SourceKind {
     TTY,
-    Buffer, 
+    Subshell, 
     UserFunction(String), // String contains function name
 }
 
@@ -16,14 +17,19 @@ pub trait Source {
     fn is_tty(&self) -> bool; // TODO: Remove &self
 }
 
+// TODO: This should be a vec of lines, and should include sourcekind...
+// Buffer is not a valid sourcekind; should be 'subshell'
 pub struct BufferSource {
-    lines: Vec<String>,
+    lines: Vec<Line>,
     line_num: usize,
 }
 
 impl BufferSource {
-    pub fn new(lines: Vec<String>) -> Box<dyn Source> {
-        Box::new(BufferSource { lines, line_num: 0 })
+    pub fn new(lines: Vec<Line>) -> Box<dyn Source> {
+        Box::new(BufferSource { 
+            lines, 
+            line_num: 0,
+        })
     }
 }
 
@@ -33,14 +39,15 @@ impl Source for BufferSource {
             Ok(None)
         } else {
             self.line_num += 1;
-            let line = Line::new(self.lines[self.line_num - 1].clone(),
-                                 self.line_num, 
-                                 SourceKind::Buffer);
-            Ok(Some(line))
+            Ok(Some(self.lines[self.line_num - 1].clone()))
         }
     }
 
     fn is_tty(&self) -> bool {
-        false
+        if self.lines.is_empty() {
+            false
+        } else {
+            *self.lines[0].source() == SourceKind::TTY
+        }
     }
 }

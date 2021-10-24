@@ -74,3 +74,11 @@ pub fn r#let(smsh: &mut Shell, args: Vec::<String>) -> Result<()> {
     Ok(())
 }
 
+pub fn r#fn(smsh: &mut Shell, args: Vec::<String>) -> Result<()> {
+    if args.len() != 2 || !args[1].ends_with(":"){
+        return Err(anyhow!("Improper invocation of `fn`"));
+    }
+
+    Ok(())
+
+}

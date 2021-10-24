@@ -14,6 +14,7 @@ use word::get_words_from_str;
 // Notably, a line can transcend physical lines by
 // quoting, by backslash escaping a newline, and by
 // terminating a line with a pipe operator.
+#[derive(Clone)]
 pub struct Line {
     rawline: String,
     line_num: usize,
@@ -39,6 +40,14 @@ impl Line {
 
     pub fn append(&mut self, text: String) {
         self.rawline.push_str(text.as_str());
+    }
+
+    pub fn source(&self) -> &SourceKind {
+        &self.source
+    }
+
+    pub fn line_num(&self) -> usize {
+        self.line_num
     }
 
     // True if line is a complete logical line
@@ -114,8 +123,8 @@ impl fmt::Display for Line {
             SourceKind::TTY => {
                 write!(f, "TTY line {}:\n{}", self.line_num, self.rawline)
             }
-            SourceKind::Buffer => {
-                write!(f, "Buffer line {}:\n{}", self.line_num, self.rawline)
+            SourceKind::Subshell => {
+                write!(f, "Subshell Expansion line {}:\n{}", self.line_num, self.rawline)
             }
             SourceKind::UserFunction(s) => {
                 write!(f, "Function `{}` line number {}:\n{}", s, self.line_num, self.rawline)

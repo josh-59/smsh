@@ -15,9 +15,9 @@ impl UserFunction {
         UserFunction { fn_name, fn_body, line_num: 0 }
     }
 
-    pub fn build_source(&self) -> Result<Box<dyn Source>> {
+    pub fn build_source(&self) -> Box<dyn Source> {
         let source = Box::new(self.clone());
-        Ok(source)
+        source
     }
 }
 

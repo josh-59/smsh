@@ -9,6 +9,8 @@
 
 use anyhow::Result;
 use crate::shell::Shell;
+use crate::sources::{SourceKind, BufferSource};
+use crate::line::Line;
 
 use std::env;
 use std::os::unix::io::{RawFd, FromRawFd};
@@ -136,6 +138,7 @@ fn get_expansion(text: &str) -> Expansion {
 }
 
 pub fn subshell_expand(smsh: &mut Shell, line: String) -> Result<String>{
+    eprintln!("Subshell expanding line:\n{}", line);
 
     let (rd, wr) = pipe()?;
 
@@ -144,7 +147,6 @@ pub fn subshell_expand(smsh: &mut Shell, line: String) -> Result<String>{
             close(wr)?;
 
             wait()?;
-
 
             let mut buf = String::new();
 
@@ -163,7 +165,8 @@ pub fn subshell_expand(smsh: &mut Shell, line: String) -> Result<String>{
             dup2(wr, 1 as RawFd)?;
             close(wr)?;
 
-            smsh.push_subshell_command(line);
+            let line = Line::new(line, 0, SourceKind::Subshell);
+            smsh.push_source(BufferSource::new(vec![line]));
 
             while let Err(e) = smsh.run() {
                 eprintln!("smsh (subshell): {}", e);
