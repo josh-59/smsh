@@ -5,7 +5,7 @@ use std::env;
 
 use super::{Module, load_module, unload_module};
 
-pub fn chdir(_smsh: &mut Shell, args: Vec::<String>) -> Result<()> {
+pub fn chdir(_smsh: &mut Shell, args: Vec::<&str>) -> Result<()> {
     if args.len() == 1 { 
         if let Some(dir) = env::var_os("HOME") {
             env::set_current_dir(dir)?;
@@ -19,13 +19,13 @@ pub fn chdir(_smsh: &mut Shell, args: Vec::<String>) -> Result<()> {
     Ok(())
 }
 
-pub fn exit(_smsh: &mut Shell, _args: Vec::<String>) -> Result<()> {
+pub fn exit(_smsh: &mut Shell, _args: Vec::<&str>) -> Result<()> {
     std::process::exit(0);
 }
 
-pub fn lm_builtin(smsh: &mut Shell, args: Vec::<String>) -> Result<()> {
+pub fn lm_builtin(smsh: &mut Shell, args: Vec::<&str>) -> Result<()> {
     if args.len() == 2 {
-        match args[1].as_str() {
+        match args[1] {
             "core" => {
                 load_module(smsh, Module::Core)?;
                 Ok(())
@@ -39,9 +39,9 @@ pub fn lm_builtin(smsh: &mut Shell, args: Vec::<String>) -> Result<()> {
     }
 }
 
-pub fn ulm_builtin(smsh: &mut Shell, args: Vec::<String>) -> Result<()> {
+pub fn ulm_builtin(smsh: &mut Shell, args: Vec::<&str>) -> Result<()> {
     if args.len() == 2 {
-        match args[1].as_str() {
+        match args[1] {
             "core" => {
                 unload_module(smsh, Module::Core)?;
                 Ok(())
@@ -55,12 +55,12 @@ pub fn ulm_builtin(smsh: &mut Shell, args: Vec::<String>) -> Result<()> {
     }
 }
 
-pub fn r#let(smsh: &mut Shell, args: Vec::<String>) -> Result<()> {
+pub fn r#let(smsh: &mut Shell, args: Vec::<&str>) -> Result<()> {
     if args.len() < 4 || args[2] != "=" {
         return Err(anyhow!("Improper invocation of `let`"));
     }
 
-    let key = args[1].clone();
+    let key = args[1].to_string();
     let mut value = String::new();
 
     for word in &args[3..] {
@@ -77,14 +77,14 @@ pub fn r#let(smsh: &mut Shell, args: Vec::<String>) -> Result<()> {
 
 // Collect a block of input from the shell, create a 
 // a new function with it, and save it into the shell
-pub fn r#fn(smsh: &mut Shell, mut args: Vec::<String>) -> Result<()> {
+pub fn r#fn(smsh: &mut Shell, mut args: Vec::<&str>) -> Result<()> {
 
     if args.len() != 2 || !args[1].ends_with(":"){
         return Err(anyhow!("Improper invocation of `fn`"));
     }
 
-    args[1].pop();
-    let fn_name = args[1].clone();
+    let mut fn_name = args[1].to_string();
+    fn_name.pop();
 
     let fn_body = smsh.get_block()?
             .iter()

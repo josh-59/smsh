@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use nix::unistd::{self, fork, ForkResult};
 use nix::sys::wait::wait;
 use std::ffi::CString;
@@ -102,13 +102,12 @@ impl Line {
         }
 
         //XXX
-        let words_string = words.iter().map(|x| x.text().to_string()).collect();
+        let strs: Vec<&str> = words.iter().map(|x| x.text()).collect();
 
-        if smsh.push_user_function(words_string) {
+        if smsh.push_user_function(&strs) {
             Ok(())
-        } else if let Some(f) = smsh.get_builtin(words[0].text()) {
-            let strings = words.iter().map(|x| x.text().to_string()).collect();
-            f(smsh, strings)
+        } else if let Some(f) = smsh.get_builtin(strs[0]){
+            f(smsh, strs)
         } else {
             match unsafe{fork()?} {
                 ForkResult::Parent { child: _, .. } => {
@@ -117,12 +116,14 @@ impl Line {
                 }
                 ForkResult::Child => {
                     smsh.clear_sources();
+
                     let command = CString::new(words[0].text().clone())?;
                     let mut args = vec![];
-                    for word in words {
+                    for word in &words {
                         args.push(CString::new(word.text())?);
                     }
-                    unistd::execvp(&command, &args)?;
+                    unistd::execvp(&command, &args)
+                        .context(format!("Unable to execute external command {}", words[0].text()))?;
                     Ok(())
                 }
             }

@@ -3,7 +3,7 @@ use super::Shell;
 
 mod core;
 
-pub type Builtin = fn(&mut Shell, Vec::<String>) -> Result<()>;
+pub type Builtin = fn(&mut Shell, Vec::<&str>) -> Result<()>;
 
 pub enum Module {
     Core

@@ -110,10 +110,10 @@ impl Shell {
         self.user_functions.insert(func.name().to_string(), func);
     }
 
-    pub fn push_user_function(&mut self, args: Vec<String>) -> bool {
+    pub fn push_user_function(&mut self, args: &Vec<&str>) -> bool {
         if args.is_empty() {
             false
-        } else if let Some(func) = self.user_functions.get(&args[0]) {
+        } else if let Some(func) = self.user_functions.get(args[0]) {
             self.sources.push(func.build_source());
             true
         } else {
