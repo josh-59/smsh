@@ -13,10 +13,9 @@ use crate::shell::Shell;
 use std::env;
 use std::os::unix::io::{RawFd, FromRawFd};
 use std::fs::File;
-use std::ffi::CString;
 use std::io::Read;
 
-use nix::unistd::{self, fork, pipe, ForkResult, close, dup2};
+use nix::unistd::{fork, pipe, ForkResult, close, dup2};
 use nix::sys::wait::wait;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -51,6 +50,7 @@ pub struct Word {
 
 impl Word {
     fn new(text: String, quote: Quote) -> Result<Word> {
+        // XXX: This is poor...
         let expansion = match quote {
             Quote::Unquoted | Quote::DoubleQuoted | Quote::Expansion(_) => {
                 get_expansion(&text)

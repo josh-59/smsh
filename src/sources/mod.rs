@@ -3,10 +3,12 @@ use anyhow::Result;
 use super::line::Line;
 
 pub mod tty;
+pub mod user_function;
 
 pub enum SourceKind {
     TTY,
     Buffer, 
+    UserFunction(String), // String contains function name
 }
 
 pub trait Source {

@@ -55,7 +55,7 @@ pub fn ulm_builtin(smsh: &mut Shell, args: Vec::<String>) -> Result<()> {
 }
 
 pub fn r#let(smsh: &mut Shell, args: Vec::<String>) -> Result<()> {
-    if args.len() < 4 {
+    if args.len() < 4 || args[2] != "=" {
         return Err(anyhow!("Improper invocation of `let`"));
     }
 
@@ -73,3 +73,4 @@ pub fn r#let(smsh: &mut Shell, args: Vec::<String>) -> Result<()> {
 
     Ok(())
 }
+

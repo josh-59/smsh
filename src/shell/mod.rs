@@ -1,6 +1,9 @@
 use anyhow::Result;
 use nix::unistd::getuid;
-use super::sources::{Source, tty::TTY, BufferSource};
+use super::sources::{Source, 
+    tty::TTY, 
+    user_function::UserFunction,
+    BufferSource};
 use super::line::Line;
 
 use std::collections::HashMap;
@@ -12,6 +15,7 @@ pub struct Shell {
     sources: Vec<Box<dyn Source>>,
     builtins: HashMap<&'static str, Builtin>,
     user_variables: HashMap<String, String>,
+    user_functions: HashMap<String, UserFunction>,
 }
 
 impl Shell {
@@ -21,8 +25,14 @@ impl Shell {
 
         let builtins = HashMap::<&'static str, Builtin>::new();
         let user_variables = HashMap::<String, String>::new();
+        let user_functions = HashMap::<String, UserFunction>::new();
 
-        let mut smsh = Shell { sources, builtins, user_variables };
+        let mut smsh = Shell { 
+            sources, 
+            builtins, 
+            user_variables,
+            user_functions,
+        };
 
         load_module(&mut smsh, Module::Core)?;
 

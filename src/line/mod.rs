@@ -110,12 +110,15 @@ impl Line {
 
 impl fmt::Display for Line {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.source {
+        match &self.source {
             SourceKind::TTY => {
                 write!(f, "TTY line {}:\n{}", self.line_num, self.rawline)
             }
             SourceKind::Buffer => {
                 write!(f, "Buffer line {}:\n{}", self.line_num, self.rawline)
+            }
+            SourceKind::UserFunction(s) => {
+                write!(f, "Function `{}` line number {}:\n{}", s, self.line_num, self.rawline)
             }
         }
     }
