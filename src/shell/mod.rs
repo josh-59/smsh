@@ -20,9 +20,7 @@ pub struct Shell {
 
 impl Shell {
     pub fn new() -> Result<Shell> {
-        let tty = TTY::new()?;
-        let sources = vec![tty];
-
+        let sources = vec![TTY::new()?];
         let builtins = HashMap::<&'static str, Builtin>::new();
         let user_variables = HashMap::<String, String>::new();
         let user_functions = HashMap::<String, UserFunction>::new();
@@ -72,14 +70,16 @@ impl Shell {
 
         let first_line = self.get_line()?.unwrap();
         let source = first_line.source().clone();
+        let indent = first_line.indentation();
         lines.push(first_line);
 
         while let Some(line) = self.get_line()? {
-            if *line.source() == source {
+            if *line.source() == source && line.indentation() == indent {
                 lines.push(line);
-            } 
-            // XXX: Not complete!
-
+            } else {
+                self.push_source(BufferSource::new(vec![line]));
+                break;
+            }
         }
 
         Ok(lines)
@@ -107,6 +107,10 @@ impl Shell {
         } else {
             None
         }
+    }
+
+    pub fn insert_user_function(&mut self, func: UserFunction) {
+        self.user_functions.insert(func.name().to_string(), func);
     }
 
     pub fn push_user_function(&mut self, args: Vec<String>) -> bool {

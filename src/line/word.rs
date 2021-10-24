@@ -37,6 +37,7 @@ pub enum Expansion {
     Unknown,
 }
 
+#[derive(Clone)]
 pub enum Separator {
     None,           // If single- or double-quoted
     Whitespace,     // Default
@@ -44,6 +45,8 @@ pub enum Separator {
     Arbitrary(String),
 }
 
+
+#[derive(Clone)]
 pub struct Word {
     pub text: String,
     expansion: Expansion,

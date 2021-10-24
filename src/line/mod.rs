@@ -50,6 +50,14 @@ impl Line {
         self.line_num
     }
 
+    pub fn indentation(&self) -> usize {
+        self.indentation
+    }
+
+    pub fn text(&self) -> String {
+        self.rawline.clone()
+    }
+
     // True if line is a complete logical line
     // Assumes trailing newline has been removed.
     pub fn is_complete(&self) -> bool {
@@ -93,7 +101,12 @@ impl Line {
             return Ok(());
         }
 
-        if let Some(f) = smsh.get_builtin(words[0].text()) {
+        //XXX
+        let words_string = words.iter().map(|x| x.text().to_string()).collect();
+
+        if smsh.push_user_function(words_string) {
+            Ok(())
+        } else if let Some(f) = smsh.get_builtin(words[0].text()) {
             let strings = words.iter().map(|x| x.text().to_string()).collect();
             f(smsh, strings)
         } else {

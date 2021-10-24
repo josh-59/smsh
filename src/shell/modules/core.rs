@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Result};
 use crate::shell::Shell;
+use crate::sources::user_function::UserFunction;
 use std::env;
 
 use super::{Module, load_module, unload_module};
@@ -74,10 +75,25 @@ pub fn r#let(smsh: &mut Shell, args: Vec::<String>) -> Result<()> {
     Ok(())
 }
 
-pub fn r#fn(smsh: &mut Shell, args: Vec::<String>) -> Result<()> {
+// Collect a block of input from the shell, create a 
+// a new function with it, and save it into the shell
+pub fn r#fn(smsh: &mut Shell, mut args: Vec::<String>) -> Result<()> {
+
     if args.len() != 2 || !args[1].ends_with(":"){
         return Err(anyhow!("Improper invocation of `fn`"));
     }
+
+    args[1].pop();
+    let fn_name = args[1].clone();
+
+    let fn_body = smsh.get_block()?
+            .iter()
+            .map(|x| x.text())
+            .collect();
+
+    let func = UserFunction::new(fn_name, fn_body);
+
+    smsh.insert_user_function(func);
 
     Ok(())
 

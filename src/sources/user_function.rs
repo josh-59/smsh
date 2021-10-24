@@ -19,6 +19,10 @@ impl UserFunction {
         let source = Box::new(self.clone());
         source
     }
+
+    pub fn name<'a>(&'a self) -> &'a str {
+        &self.fn_name
+    }
 }
 
 impl Source for UserFunction {
