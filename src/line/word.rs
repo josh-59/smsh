@@ -7,7 +7,7 @@
 //      PlainString(String)
 //      }
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use crate::shell::Shell;
 use crate::sources::{SourceKind, BufferSource};
 use crate::line::Line;
@@ -113,7 +113,7 @@ impl Word {
 }
 
 fn get_expansion(text: &str) -> Expansion {
-    if text.len() < 3 {
+    if text.len() < 2 {
         Expansion::None
     } else if text.starts_with("{") {
         if text.ends_with("}") {
@@ -251,5 +251,19 @@ pub fn get_words_from_str(line: &str) -> Result<Vec<Word>> {
         words.push(Word::new(word_text, quoted)?);
     }
 
-    Ok(words)
+    match quoted {
+        Quote::SingleQuoted => {
+            Err(anyhow!("Unmatched single quote (This should not happen)."))
+        } 
+        Quote::DoubleQuoted => {
+            Err(anyhow!("Unmatched double quote (This should not happen)."))
+        } 
+        Quote::Expansion(_) => {
+            Err(anyhow!("Improperly formed text replacement"))
+        } 
+        Quote::Unquoted => {
+            Ok(words)
+        }
+    }
+
 }
