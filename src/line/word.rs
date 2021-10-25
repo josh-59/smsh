@@ -55,13 +55,12 @@ pub struct Word {
 
 impl Word {
     fn new(text: String, quote: Quote) -> Result<Word> {
-        // XXX: This is poor...
         let expansion = match quote {
-            Quote::Unquoted | Quote::DoubleQuoted | Quote::Expansion(_) => {
-                get_expansion(&text)
-            }
-            Quote::SingleQuoted=> {
+            Quote::SingleQuoted => {
                 Expansion::None
+            }
+            _ => {
+                get_expansion(&text)
             }
         };
 
