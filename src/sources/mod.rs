@@ -4,12 +4,14 @@ use super::line::Line;
 
 pub mod tty;
 pub mod user_function;
+pub mod script;
 
 #[derive(PartialEq, Eq, Clone)]
 pub enum SourceKind {
     TTY,
     Subshell, 
-    UserFunction(String), // String contains function name
+    UserFunction(String),   // String contains function name
+    Script(String),         // String contains script pathname
 }
 
 pub trait Source {

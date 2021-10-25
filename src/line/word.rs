@@ -110,6 +110,10 @@ impl Word {
             }
         }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.text().is_empty()
+    }
 }
 
 fn get_expansion(text: &str) -> Expansion {
@@ -155,7 +159,7 @@ pub fn subshell_expand(smsh: &mut Shell, line: String) -> Result<String>{
 
             unsafe {
                 let mut rd = File::from_raw_fd(rd);
-                rd.read_to_string(&mut buf);
+                rd.read_to_string(&mut buf)?;
             }
 
             Ok(buf)

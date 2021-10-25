@@ -1,15 +1,16 @@
 use anyhow::Result;
-use nix::unistd::getuid;
-use super::sources::{Source, 
-    tty::TTY, 
+use crate::sources::{
+    Source,
     user_function::UserFunction,
     BufferSource};
-use super::line::Line;
+use crate::line::Line;
 
 use std::collections::HashMap;
 
 mod modules;
 use modules::*;
+mod init;
+use init::init;
 
 pub struct Shell {
     sources: Vec<Box<dyn Source>>,
@@ -20,21 +21,7 @@ pub struct Shell {
 
 impl Shell {
     pub fn new() -> Result<Shell> {
-        let sources = vec![TTY::new()?];
-        let builtins = HashMap::<&'static str, Builtin>::new();
-        let user_variables = HashMap::<String, String>::new();
-        let user_functions = HashMap::<String, UserFunction>::new();
-
-        let mut smsh = Shell { 
-            sources, 
-            builtins, 
-            user_variables,
-            user_functions,
-        };
-
-        load_module(&mut smsh, Module::Core)?;
-
-        Ok(smsh)
+        init()
     }
 
     pub fn run(&mut self) -> Result<()> {
@@ -61,8 +48,6 @@ impl Shell {
 
     pub fn get_block(&mut self) -> Result<Vec<Line>> {
         let mut lines = Vec::<Line>::new();
-
-        let first_line = self.get_line()?;
 
         if let Some(first_line) = self.get_line()? {
             let source = first_line.source().clone();

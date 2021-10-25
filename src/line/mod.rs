@@ -8,7 +8,7 @@ use super::shell::Shell;
 use super::sources::SourceKind;
 
 mod word;
-use word::get_words_from_str;
+use word::{Word, get_words_from_str};
 
 // Represents a logical line given to the shell.
 // Notably, a line can transcend physical lines by
@@ -102,7 +102,18 @@ impl Line {
         }
 
         //XXX
-        let strs: Vec<&str> = words.iter().map(|x| x.text()).collect();
+        let strs: Vec<&str> = words.iter()
+            .filter_map(|x| 
+                        if !x.is_empty() {
+                            Some(x.text())
+                        } else {
+                            None
+                        })
+            .collect();
+
+        for s in &strs {
+            eprintln!("`{}`", s);
+        }
 
         if smsh.push_user_function(&strs) {
             Ok(())
@@ -117,13 +128,13 @@ impl Line {
                 ForkResult::Child => {
                     smsh.clear_sources();
 
-                    let command = CString::new(words[0].text().clone())?;
+                    let command = CString::new(strs[0].to_string())?;
                     let mut args = vec![];
-                    for word in &words {
-                        args.push(CString::new(word.text())?);
+                    for s in &strs {
+                        args.push(CString::new(s.to_string())?);
                     }
                     unistd::execvp(&command, &args)
-                        .context(format!("Unable to execute external command {}", words[0].text()))?;
+                        .context(format!("Unable to execute external command `{}`", words[0].text()))?;
                     Ok(())
                 }
             }
@@ -142,6 +153,9 @@ impl fmt::Display for Line {
             }
             SourceKind::UserFunction(s) => {
                 write!(f, "Function `{}` line number {}:\n{}", s, self.line_num, self.rawline)
+            }
+            SourceKind::Script(s) => {
+                write!(f, "Script `{}` line number {}:\n{}", s, self.line_num, self.rawline)
             }
         }
     }
