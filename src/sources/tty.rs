@@ -11,11 +11,10 @@ pub struct TTY {
 }
 
 impl TTY {
-    pub fn new() -> Result<Box<dyn Source>> {
+    pub fn new() -> Box<dyn Source> {
         let stdin = io::stdin();
 
-        let source = Box::new(TTY{ stdin, line_num: 0});
-        Ok(source)
+        Box::new(TTY{ stdin, line_num: 0})
     }
 
     // Used to complete logical lines when they transcend physical lines
