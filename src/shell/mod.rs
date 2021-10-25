@@ -20,7 +20,7 @@ pub struct Shell {
 }
 
 impl Shell {
-    pub fn new() -> Result<Shell> {
+    pub fn new() -> Shell {
         init()
     }
 

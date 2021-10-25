@@ -27,7 +27,7 @@ pub fn lm_builtin(smsh: &mut Shell, args: Vec::<&str>) -> Result<()> {
     if args.len() == 2 {
         match args[1] {
             "core" => {
-                load_module(smsh, Module::Core)?;
+                load_module(smsh, Module::Core);
                 Ok(())
             }
             _ => {

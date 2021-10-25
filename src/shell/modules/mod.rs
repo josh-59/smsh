@@ -9,7 +9,7 @@ pub enum Module {
     Core
 }
 
-pub fn load_module(smsh: &mut Shell, module: Module) -> Result<()> {
+pub fn load_module(smsh: &mut Shell, module: Module) {
     match module {
         Module::Core => {
             smsh.builtins.insert("cd", core::chdir);
@@ -18,7 +18,6 @@ pub fn load_module(smsh: &mut Shell, module: Module) -> Result<()> {
             smsh.builtins.insert("exit", core::exit);
             smsh.builtins.insert("self::load_module", core::lm_builtin);
             smsh.builtins.insert("self::unload_module", core::ulm_builtin);
-            Ok(())
         }
     }
 }
