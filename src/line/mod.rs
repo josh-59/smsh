@@ -8,7 +8,7 @@ use super::shell::Shell;
 use super::sources::SourceKind;
 
 mod word;
-use word::{Word, get_words_from_str};
+use word::get_words_from_str;
 
 // Represents a logical line given to the shell.
 // Notably, a line can transcend physical lines by
@@ -44,10 +44,6 @@ impl Line {
 
     pub fn source(&self) -> &SourceKind {
         &self.source
-    }
-
-    pub fn line_num(&self) -> usize {
-        self.line_num
     }
 
     pub fn indentation(&self) -> usize {
@@ -110,10 +106,6 @@ impl Line {
                             None
                         })
             .collect();
-
-        for s in &strs {
-            eprintln!("`{}`", s);
-        }
 
         if smsh.push_user_function(&strs) {
             Ok(())
