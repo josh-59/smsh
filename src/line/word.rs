@@ -48,7 +48,7 @@ pub enum Separator {
 
 #[derive(Clone)]
 pub struct Word {
-    pub text: String,
+    text: String,
     expansion: Expansion,
     separator: Separator,
 }
