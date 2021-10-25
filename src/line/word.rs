@@ -119,24 +119,12 @@ impl Word {
 fn get_expansion(text: &str) -> Expansion {
     if text.len() < 2 {
         Expansion::None
-    } else if text.starts_with("{") {
-        if text.ends_with("}") {
+    } else if text.starts_with("{") && text.ends_with("}") {
             Expansion::Variable
-        } else {
-            Expansion::None
-        }
-    } else if text.starts_with("!{") {
-        if text.ends_with("}") {
+    } else if text.starts_with("!{") && text.ends_with("}") {
             Expansion::Subshell
-        } else {
-            Expansion::None
-        }
-    } else if text.starts_with("e{") {
-        if text.ends_with("}") {
+    } else if text.starts_with("e{") && text.ends_with("}") {
             Expansion::Environment
-        } else {
-            Expansion::None
-        } 
     } else if text[0..2].contains("{") {
         Expansion::Unknown
     } else {
