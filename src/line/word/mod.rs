@@ -1,12 +1,3 @@
-// This section is very dirty; needs to be rewritten.
-// Thinking, Word enum s.t.
-// pub enum Word {
-//      VariableExpansion(String)
-//      EnvironmentExpansion(String)
-//      SubshellExpansion(String)
-//      PlainString(String)
-//      }
-
 use anyhow::{anyhow, Result};
 use crate::shell::Shell;
 use crate::sources::{SourceKind, BufferSource};
@@ -19,6 +10,9 @@ use std::io::Read;
 
 use nix::unistd::{fork, pipe, ForkResult, close, dup2};
 use nix::sys::wait::wait;
+
+mod selection;
+use selection::get_selection;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Quote {
@@ -45,16 +39,38 @@ pub enum Separator {
     Arbitrary(String),
 }
 
+#[derive(Clone, Copy)]
+pub enum Selection {
+    All,
+    Index(usize),
+    Slice(usize, usize),
+}
 
 #[derive(Clone)]
 pub struct Word {
     text: String,
     expansion: Expansion,
     separator: Separator,
+    selection: Selection,
 }
 
+// A word is a single logical unit of raw text.
+// Words expand themselves (wrt a given shell).
 impl Word {
     fn new(text: String, quote: Quote) -> Result<Word> {
+        let (text, selection) = get_selection(&text)?;
+
+        // Debug printing
+        match selection {
+            Selection::Index(n) => {
+                eprintln!("Selected INDEX {}; got word {}", n, text);
+            } 
+            Selection::Slice(n, m) => {
+                eprintln!("Selected SLICE {} to {}; got word {}", n, m, text);
+            }
+            _ => {}
+        }
+
         let expansion = match quote {
             Quote::SingleQuoted => {
                 Expansion::None
@@ -64,7 +80,7 @@ impl Word {
             }
         };
 
-        Ok(Word { text, expansion, separator: Separator::Whitespace })
+        Ok(Word { text, expansion, separator: Separator::Whitespace, selection })
     }
 
     pub fn text<'a>(&'a self) -> &'a str {
@@ -108,6 +124,14 @@ impl Word {
                 Ok(())
             }
         }
+    }
+
+    pub fn select(&mut self) -> Result<()>{
+        Ok(())
+    }
+
+    pub fn separate(&mut self) -> Result<()> {
+        Ok(())
     }
 
     pub fn is_empty(&self) -> bool {
@@ -230,8 +254,6 @@ pub fn get_words_from_str(line: &str) -> Result<Vec<Word>> {
                 word_text.push(ch);
 
                 if quoted == Quote::Expansion(0) {
-                    words.push(Word::new(word_text, quoted)?);
-                    word_text = String::new();
                     quoted = Quote::Unquoted;
                 }
             }

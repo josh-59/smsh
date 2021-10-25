@@ -91,13 +91,14 @@ impl Line {
 
         for word in &mut words {
             word.expand(smsh)?;
+            word.separate()?;
+            word.select()?;
         }
 
         if words.len() == 0 {
             return Ok(());
         }
 
-        //XXX
         let strs: Vec<&str> = words.iter()
             .filter_map(|x| 
                         if !x.is_empty() {
