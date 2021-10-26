@@ -52,17 +52,6 @@ impl Word {
     fn new(text: String, quote: Quote) -> Result<Word> {
         let (text, selection) = get_selection(&text)?;
 
-        // Debug printing
-        match selection {
-            Selection::Index(n) => {
-                eprintln!("Selected INDEX {}; got word {}", n, text);
-            } 
-            Selection::Slice(n, m) => {
-                eprintln!("Selected SLICE {} to {}; got word {}", n, m, text);
-            }
-            _ => {}
-        }
-
         let expansion = match quote {
             Quote::SingleQuoted => {
                 Expansion::None
@@ -72,7 +61,14 @@ impl Word {
             }
         };
 
-        Ok(Word { text, expansion, separator: Separator::Whitespace, selection })
+        let word = Word {
+            text,
+            expansion,
+            separator: Separator::Whitespace,
+            selection
+        };
+
+        Ok(word)
     }
 
     pub fn text<'a>(&'a self) -> &'a str {
