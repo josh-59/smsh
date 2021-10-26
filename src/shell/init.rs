@@ -32,6 +32,7 @@ pub fn init() -> Shell {
     smsh
 }
 
+// Again, we do not want this function to fail.
 pub fn push_init_script(smsh: &mut Shell) {
     match BaseDirectories::new() {
         Ok(base_dirs) => {
