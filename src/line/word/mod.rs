@@ -39,7 +39,7 @@ pub enum Separator {
     Arbitrary(String),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Selection {
     All,
     Index(usize),
