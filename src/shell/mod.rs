@@ -2,7 +2,8 @@ use anyhow::Result;
 use crate::sources::{
     Source,
     user_function::UserFunction,
-    BufferSource};
+    BufferSource,
+    tty::TTY};
 use crate::line::Line;
 
 use std::collections::HashMap;
@@ -104,5 +105,14 @@ impl Shell {
         } else {
             false
         }
+    }
+
+    pub fn is_interactive(&self) -> bool {
+        true
+    }
+
+    pub fn reset_interactive(&mut self) {
+        self.sources.clear();
+        self.sources.push(TTY::new());
     }
 }
