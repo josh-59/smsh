@@ -2,7 +2,7 @@
 
 Status: Not yet useable 
 
-Simple shell is a shell for the next generation.
+`smsh` is a shell for the next generation.
 It is intended to be full-featured, reasonably fast, and most of all, easy to use.
 It is also intended to be a replacement for Thompson-based shells.
 In order to justify that change, `smsh` offers a compellingly better 
