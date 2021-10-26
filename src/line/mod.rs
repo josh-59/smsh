@@ -55,7 +55,6 @@ impl Line {
     }
 
     // True if line is a complete logical line
-    // Assumes trailing newline has been removed.
     pub fn is_complete(&self) -> bool {
         let mut single_quoted = false;
         let mut double_quoted = false;
