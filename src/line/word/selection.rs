@@ -1,3 +1,6 @@
+// To do: Allow variable expansion within selectors?
+//        Allow negative indices (definitely)
+
 use anyhow::{anyhow, Result};
 
 use super::Selection;
