@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use nix::unistd::getuid;
 use std::io::{self, Stdin, Write};
 
@@ -18,16 +18,20 @@ impl TTY {
     }
 
     // Used to complete logical lines when they transcend physical lines
-    pub fn get_secondary_line(&mut self) -> Result<String> {
+    pub fn get_secondary_line(&mut self) -> Result<Option<String>> {
 
         let mut buffer = String::new();
 
         print!("> ");
         io::stdout().flush()?;
 
-        self.stdin.read_line(&mut buffer)?;
+        let num_bytes_read = self.stdin.read_line(&mut buffer)?;
 
-        Ok(buffer)
+        if num_bytes_read == 0 {
+            Err(anyhow!("Unexpected EOF")) // EOF was found
+        } else {
+            Ok(Some(buffer))
+        }
     }
 }
 
@@ -49,16 +53,24 @@ impl Source for TTY {
         print!("{}", prompt);
         io::stdout().flush()?;
 
-        self.stdin.read_line(&mut buffer)?;
-        self.line_num += 1;
+        // Buffer contains newline
+        let num_bytes_read = self.stdin.read_line(&mut buffer)?;
 
-        let mut line = Line::new(buffer, self.line_num, SourceKind::TTY);
+        if num_bytes_read == 0 {
+            Ok(None) // EOF was found
+        } else {
+            self.line_num += 1;
 
-        while !line.is_complete() {
-            line.append(self.get_secondary_line()?)
+            let mut line = Line::new(buffer, self.line_num, SourceKind::TTY);
+
+            while !line.is_complete() {
+                if let Some(line_addendum) = self.get_secondary_line()? {
+                    line.append(line_addendum);
+                }
+            }
+
+            Ok(Some(line))
         }
-
-        Ok(Some(line))
     }
 
     fn is_tty(&self) -> bool {
