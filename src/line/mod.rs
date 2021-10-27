@@ -90,8 +90,8 @@ impl Line {
     }
 
     pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
-        let substrings = break_line_into_words(&self.rawline)?;
 
+        let substrings = self.get_words()?;
         let mut words = Vec::<String>::new();
 
         for s in substrings {
@@ -105,14 +105,14 @@ impl Line {
             }
         }
 
-        let strs = words.iter().map(|x| x.as_str()).collect();
+        let strs: Vec<&str> = words.iter().map(|x| x.as_str()).collect();
 
         if words.is_empty() {
             return Ok(());
         }
 
-        if smsh.push_user_function(&words) {
-            Ok(())
+        if smsh.is_user_function(strs[0]) {
+            smsh.push_user_function(&words)
         } else if let Some(f) = smsh.get_builtin(&words[0]) {
             f(smsh, strs)
         } else {
@@ -138,91 +138,91 @@ impl Line {
             }
         }
     }
-}
 
-// Breaks line into words according to quoting rules.
-// Quotes and braces are preserved, whitespace is removed
-pub fn break_line_into_words(line: &str) -> Result<Vec<String>> {
-    #[derive(PartialEq, Eq)]
-    enum State {
-        SingleQuoted,
-        DoubleQuoted,
-        Unquoted,
-        Expansion(usize),
-    }
+    // Breaks line into words according to quoting rules.
+    // Quotes and braces are preserved, whitespace is removed
+    fn get_words(&self) -> Result<Vec<String>> {
+        #[derive(PartialEq, Eq)]
+        enum State {
+            SingleQuoted,
+            DoubleQuoted,
+            Unquoted,
+            Expansion(usize),
+        }
 
-    let mut words = Vec::<String>::new();
-    let mut word = String::new();
+        let mut words = Vec::<String>::new();
+        let mut word = String::new();
 
-    let mut state = State::Unquoted;
+        let mut state = State::Unquoted;
 
-    for ch in line.chars() {
-        match state {
-            State::Unquoted => match ch {
-                ' ' | '\n' | '\t' => {
-                    if !word.is_empty() {
+        for ch in self.rawline.chars() {
+            match state {
+                State::Unquoted => match ch {
+                    ' ' | '\n' | '\t' => {
+                            if !word.is_empty() {
+                            words.push(word);
+                            word = String::new();
+                        }
+                    }
+                    '\'' => {
+                        word.push(ch);
+                        state = State::SingleQuoted;
+                    }
+                    '\"' => {
+                        word.push(ch);
+                        state = State::DoubleQuoted;
+                    }
+                    '{' => {
+                        word.push(ch);
+                        state = State::Expansion(1);
+                    }
+                    _ => {
+                        word.push(ch);
+                    }
+                },
+                State::SingleQuoted => {
+                    word.push(ch);
+                    if ch == '\'' {
                         words.push(word);
                         word = String::new();
+                        state = State::Unquoted;
+                    } 
+                }
+                State::DoubleQuoted => {
+                    word.push(ch);
+                    if ch == '\"' {
+                        word.push(ch);
+                        words.push(word);
+                        word = String::new();
+                        state = State::Unquoted;
+                    } 
+                }
+                State::Expansion(n) => {
+                    if ch == '{' {
+                        state = State::Expansion(n + 1);
+                    } else if ch == '}' {
+                        state = State::Expansion(n - 1);
                     }
+    
+                    if state == State::Expansion(0) {
+                        state = State::Unquoted
+                    }
+    
+                    word.push(ch)
                 }
-                '\'' => {
-                    word.push(ch);
-                    state = State::SingleQuoted;
-                }
-                '\"' => {
-                    word.push(ch);
-                    state = State::DoubleQuoted;
-                }
-                '{' => {
-                    word.push(ch);
-                    state = State::Expansion(1);
-                }
-                _ => {
-                    word.push(ch);
-                }
-            },
-            State::SingleQuoted => {
-                word.push(ch);
-                if ch == '\'' {
-                    words.push(word);
-                    word = String::new();
-                    state = State::Unquoted;
-                } 
-            }
-            State::DoubleQuoted => {
-                word.push(ch);
-                if ch == '\"' {
-                    word.push(ch);
-                    words.push(word);
-                    word = String::new();
-                    state = State::Unquoted;
-                } 
-            }
-            State::Expansion(n) => {
-                if ch == '{' {
-                    state = State::Expansion(n + 1);
-                } else if ch == '}' {
-                    state = State::Expansion(n - 1);
-                }
-
-                if state == State::Expansion(0) {
-                    state = State::Unquoted
-                }
-
-                word.push(ch)
             }
         }
-    }
+    
+        if !word.is_empty() {
+            words.push(word);
+        }
 
-    if !word.is_empty() {
-        words.push(word);
-    }
-
-    match state {
-        State::SingleQuoted => Err(anyhow!("Unmatched single quote.")),
-        State::DoubleQuoted => Err(anyhow!("Unmatched double quote.")),
-        State::Expansion(_) => Err(anyhow!("Unmatched brace.")),
-        State::Unquoted => Ok(words),
+        match state {
+            State::SingleQuoted => Err(anyhow!("Unmatched single quote.")),
+            State::DoubleQuoted => Err(anyhow!("Unmatched double quote.")),
+            State::Expansion(_) => Err(anyhow!("Unmatched brace.")),
+            State::Unquoted => Ok(words),
+        }
     }
 }
 
