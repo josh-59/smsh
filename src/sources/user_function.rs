@@ -19,8 +19,8 @@ impl UserFunction {
         }
     }
 
-    pub fn build_source(&self) -> Box<dyn Source> {
-        Box::new(self.clone()) as _
+    pub fn build_source(self) -> Box<dyn Source> {
+        Box::new(self)
     }
 
     pub fn name(&self) -> &str {
