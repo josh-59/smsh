@@ -1,10 +1,12 @@
 use crate::shell::Shell;
 use anyhow::{anyhow, Result};
 
-mod selection;
-use selection::get_selection;
 mod expansion;
 use expansion::*;
+mod selection;
+use selection::get_selection;
+mod separation;
+use separation::get_separator;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Quote {
@@ -45,23 +47,36 @@ pub struct Word {
     selection: Selection,
 }
 
-// A word is a single logical unit of raw text.
-// Words expand themselves (wrt a given shell).
+// A word is a single logical unit of input text.
 impl Word {
     pub fn new(text: String) -> Result<Word> {
-        let (text, quote) = get_quote(&text)?;
 
         let (text, selection) = get_selection(&text)?;
 
+        let (text, quote) = get_quote(&text)?;
+
+        let (text, separator) = match quote {
+            Quote::SingleQuoted | Quote::DoubleQuoted => {
+                (text, Separator::None)
+            }
+            Quote::Unquoted => {
+                get_separator(&text)
+            }
+        };
+
         let (text, expansion) = match quote {
-            Quote::SingleQuoted => (text, Expansion::None),
-            _ => get_expansion(&text),
+            Quote::SingleQuoted => {
+                (text, Expansion::None)
+            }
+            Quote::Unquoted | Quote::DoubleQuoted => {
+                get_expansion(&text)
+            }
         };
 
         let word = Word {
             text,
             expansion,
-            separator: Separator::Whitespace,
+            separator,
             selection,
         };
 
