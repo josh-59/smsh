@@ -9,9 +9,5 @@ fn main() {
 
     while let Err(e) = smsh.run() {
         eprintln!("smsh: {}", e);
-
-        if smsh.is_interactive() {
-            smsh.reset_interactive();
-        }
     }
 }

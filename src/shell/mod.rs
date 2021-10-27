@@ -27,6 +27,10 @@ impl Shell {
 
     pub fn run(&mut self) -> Result<()> {
 
+        if self.is_interactive() {
+            self.reset_interactive();
+        }
+
         while let Some(mut line) = self.get_line()? {
             line.execute(self)?;
         }

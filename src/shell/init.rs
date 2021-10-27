@@ -1,7 +1,6 @@
 use xdg::BaseDirectories;
 
 use crate::sources::{
-    tty::TTY, 
     user_function::UserFunction,
     script::Script};
 use super::modules::Module;
@@ -13,7 +12,7 @@ use std::path::PathBuf;
 // We do not want this function to fail, so that
 // a user of smsh always gets into its main loop.
 pub fn init() -> Shell {
-    let sources = vec![TTY::new()];
+    let sources = vec![];
     let builtins = HashMap::<&'static str, Builtin>::new();
     let user_variables = HashMap::<String, String>::new();
     let user_functions = HashMap::<String, UserFunction>::new();
