@@ -26,10 +26,9 @@ pub enum Expansion {
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Separator {
-    None,       // If single- or double-quoted
-    Whitespace, // Default
-    Line,
-    Arbitrary(String),
+    None,               // If single- or double-quoted
+    Whitespace,         // Default
+    Arbitrary(String),  // S="sep"
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
