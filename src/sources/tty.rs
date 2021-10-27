@@ -5,16 +5,16 @@ use std::io::{self, Stdin, Write};
 use super::{Source, SourceKind};
 use crate::line::Line;
 
-pub struct TTY {
+pub struct Tty {
     stdin: Stdin,
     line_num: usize,
 }
 
-impl TTY {
-    pub fn new() -> Box<dyn Source> {
+impl Tty {
+    pub fn build_source() -> Box<dyn Source> {
         let stdin = io::stdin();
 
-        Box::new(TTY { stdin, line_num: 0 })
+        Box::new(Tty { stdin, line_num: 0 })
     }
 
     // Used to complete logical lines when they transcend physical lines
@@ -34,16 +34,15 @@ impl TTY {
     }
 }
 
-impl Source for TTY {
+impl Source for Tty {
+
     fn get_line(&mut self, prompt: Option<String>) -> Result<Option<Line>> {
         let prompt = if let Some(p) = prompt {
             p
+        } else if getuid().is_root() {
+            "# ".to_string()
         } else {
-            if getuid().is_root() {
-                "# ".to_string()
-            } else {
-                "$ ".to_string()
-            }
+            "$ ".to_string()
         };
 
         let mut buffer = String::new();
@@ -59,7 +58,7 @@ impl Source for TTY {
         } else {
             self.line_num += 1;
 
-            let mut line = Line::new(buffer, self.line_num, SourceKind::TTY);
+            let mut line = Line::new(buffer, self.line_num, SourceKind::Tty);
 
             while !line.is_complete() {
                 if let Some(line_addendum) = self.get_secondary_line()? {

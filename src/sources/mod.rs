@@ -8,7 +8,7 @@ pub mod user_function;
 
 #[derive(PartialEq, Eq, Clone)]
 pub enum SourceKind {
-    TTY,
+    Tty,
     Subshell,
     UserFunction(String), // String contains function name
     Script(String),       // String contains script pathname
@@ -27,7 +27,7 @@ pub struct BufferSource {
 }
 
 impl BufferSource {
-    pub fn new(lines: Vec<Line>) -> Box<dyn Source> {
+    pub fn build_source(lines: Vec<Line>) -> Box<dyn Source> {
         Box::new(BufferSource { lines, line_num: 0 })
     }
 }
@@ -46,7 +46,7 @@ impl Source for BufferSource {
         if self.lines.is_empty() {
             false
         } else {
-            *self.lines[0].source() == SourceKind::TTY
+            *self.lines[0].source() == SourceKind::Tty
         }
     }
 }

@@ -20,11 +20,10 @@ impl UserFunction {
     }
 
     pub fn build_source(&self) -> Box<dyn Source> {
-        let source = Box::new(self.clone());
-        source
+        Box::new(self.clone()) as _
     }
 
-    pub fn name<'a>(&'a self) -> &'a str {
+    pub fn name(&self) -> &str {
         &self.fn_name
     }
 }

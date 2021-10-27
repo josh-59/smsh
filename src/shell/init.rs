@@ -36,7 +36,7 @@ pub fn push_init_script(smsh: &mut Shell) {
             let temp = PathBuf::from("smsh/init");
 
             if let Some(path) = base_dirs.find_config_file(temp) {
-                match Script::new(path) {
+                match Script::build_source(path) {
                     Ok(script) => {
                         smsh.push_source(script);
                     }

@@ -107,7 +107,7 @@ impl Line {
 
         let strs = words.iter().map(|x| x.as_str()).collect();
 
-        if words.len() == 0 {
+        if words.is_empty() {
             return Ok(());
         }
 
@@ -160,7 +160,7 @@ pub fn break_line_into_words(line: &str) -> Result<Vec<String>> {
         match state {
             WordState::Unquoted => match ch {
                 ' ' | '\n' | '\t' => {
-                    if word.len() > 0 {
+                    if !word.is_empty() {
                         words.push(word);
                         word = String::new();
                     }
@@ -182,24 +182,21 @@ pub fn break_line_into_words(line: &str) -> Result<Vec<String>> {
                 }
             },
             WordState::SingleQuoted => {
+                word.push(ch);
                 if ch == '\'' {
-                    word.push(ch);
                     words.push(word);
                     word = String::new();
                     state = WordState::Unquoted;
-                } else {
-                    word.push(ch);
-                }
+                } 
             }
             WordState::DoubleQuoted => {
+                word.push(ch);
                 if ch == '\"' {
                     word.push(ch);
                     words.push(word);
                     word = String::new();
                     state = WordState::Unquoted;
-                } else {
-                    word.push(ch);
-                }
+                } 
             }
             WordState::Expansion(n) => {
                 if ch == '{' {
@@ -217,7 +214,7 @@ pub fn break_line_into_words(line: &str) -> Result<Vec<String>> {
         }
     }
 
-    if word.len() > 0 {
+    if !word.is_empty() {
         words.push(word);
     }
 
@@ -232,7 +229,7 @@ pub fn break_line_into_words(line: &str) -> Result<Vec<String>> {
 impl fmt::Display for Line {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.source {
-            SourceKind::TTY => {
+            SourceKind::Tty => {
                 write!(f, "TTY line {}:\n{}", self.line_num, self.rawline)
             }
             SourceKind::Subshell => {

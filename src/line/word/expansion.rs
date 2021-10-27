@@ -8,7 +8,7 @@ use super::{Expansion, Word};
 use std::env;
 use std::fs::File;
 use std::io::Read;
-use std::os::unix::io::{FromRawFd, RawFd};
+use std::os::unix::io::{FromRawFd};
 
 use nix::sys::wait::wait;
 use nix::unistd::{close, dup2, fork, pipe, ForkResult};
@@ -45,19 +45,19 @@ pub fn expand(word: &mut Word, smsh: &mut Shell) -> Result<()> {
 pub fn get_expansion(text: &str) -> (String, Expansion) {
     if text.len() < 2 {
         (text.to_string(), Expansion::None)
-    } else if text.starts_with("{") && text.ends_with("}") {
+    } else if text.starts_with('{') && text.ends_with('}') {
         let mut s = text[1..].to_string();
         s.pop();
         (s, Expansion::Variable)
-    } else if text.starts_with("!{") && text.ends_with("}") {
+    } else if text.starts_with("!{") && text.ends_with('}') {
         let mut s = text[2..].to_string();
         s.pop();
         (s, Expansion::Subshell)
-    } else if text.starts_with("e{") && text.ends_with("}") {
+    } else if text.starts_with("e{") && text.ends_with('}') {
         let mut s = text[2..].to_string();
         s.pop();
         (s, Expansion::Environment)
-    } else if text[0..2].contains("{") {
+    } else if text[0..2].contains('{') {
         let mut s = text[2..].to_string();
         s.pop();
         (s, Expansion::Unknown)
@@ -88,12 +88,12 @@ pub fn subshell_expand(smsh: &mut Shell, line: &str) -> Result<String> {
             smsh.clear_sources();
 
             close(rd)?;
-            close(1 as RawFd)?;
-            dup2(wr, 1 as RawFd)?;
+            close(1_i32)?;
+            dup2(wr, 1_i32)?;
             close(wr)?;
 
             let line = Line::new(line.to_string(), 0, SourceKind::Subshell);
-            smsh.push_source(BufferSource::new(vec![line]));
+            smsh.push_source(BufferSource::build_source(vec![line]));
 
             while let Err(e) = smsh.run() {
                 eprintln!("smsh (subshell): {}", e);

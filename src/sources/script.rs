@@ -14,7 +14,7 @@ pub struct Script {
 }
 
 impl Script {
-    pub fn new(path: PathBuf) -> Result<Box<dyn Source>> {
+    pub fn build_source(path: PathBuf) -> Result<Box<dyn Source>> {
         let body = read_to_string(&path)?
             .lines()
             .map(|x| x.to_string())
@@ -35,6 +35,7 @@ impl Script {
 }
 
 impl Source for Script {
+
     fn get_line(&mut self, _prompt: Option<String>) -> Result<Option<Line>> {
         if self.line_num == self.body.len() {
             Ok(None)

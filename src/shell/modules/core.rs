@@ -74,7 +74,7 @@ pub fn r#let(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
 // Collect a block of input from the shell, create a
 // a new function with it, and save it into the shell
 pub fn r#fn(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
-    if args.len() != 2 || !args[1].ends_with(":") {
+    if args.len() != 2 || !args[1].ends_with(':') {
         return Err(anyhow!("Improper invocation of `fn`"));
     }
 

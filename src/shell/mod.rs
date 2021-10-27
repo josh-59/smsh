@@ -1,5 +1,5 @@
 use crate::line::Line;
-use crate::sources::{tty::TTY, user_function::UserFunction, BufferSource, Source};
+use crate::sources::{tty::Tty, user_function::UserFunction, BufferSource, Source};
 use anyhow::Result;
 
 use std::collections::HashMap;
@@ -58,7 +58,7 @@ impl Shell {
                 if *line.source() == source && line.indentation() == indent {
                     lines.push(line);
                 } else {
-                    self.push_source(BufferSource::new(vec![line]));
+                    self.push_source(BufferSource::build_source(vec![line]));
                     break;
                 }
             }
@@ -84,18 +84,14 @@ impl Shell {
     }
 
     pub fn get_user_variable(&mut self, key: &str) -> Option<String> {
-        if let Some(val) = self.user_variables.get(key) {
-            Some(val.clone())
-        } else {
-            None
-        }
+        self.user_variables.get(key).cloned()
     }
 
     pub fn insert_user_function(&mut self, func: UserFunction) {
         self.user_functions.insert(func.name().to_string(), func);
     }
 
-    pub fn push_user_function(&mut self, args: &Vec<String>) -> bool {
+    pub fn push_user_function(&mut self, args: &[String]) -> bool {
         if args.is_empty() {
             false
         } else if let Some(func) = self.user_functions.get(&args[0]) {
@@ -112,6 +108,6 @@ impl Shell {
 
     pub fn reset_interactive(&mut self) {
         self.sources.clear();
-        self.sources.push(TTY::new());
+        self.sources.push(Tty::build_source());
     }
 }

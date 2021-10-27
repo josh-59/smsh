@@ -26,12 +26,12 @@ pub fn get_selection(text: &str) -> Result<(String, Selection)> {
 // Selector does not include braces
 // Returns 'None' is selector is empty.
 fn get_selector(text: &str) -> Option<(String, String)> {
-    if text.ends_with("]") {
-        if let Some(brace_index) = text.rfind("[") {
+    if text.ends_with(']') {
+        if let Some(brace_index) = text.rfind('[') {
             let selector: String = text[brace_index + 1..text.len() - 1].to_string();
             let text: String = text[..brace_index].to_string();
 
-            if selector.len() == 0 {
+            if selector.is_empty() {
                 None
             } else {
                 Some((text, selector))

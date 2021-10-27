@@ -68,7 +68,7 @@ impl Word {
         Ok(word)
     }
 
-    pub fn text<'a>(&'a self) -> &'a str {
+    pub fn text(&self) -> &str {
         &self.text
     }
 
@@ -90,7 +90,7 @@ impl Word {
 }
 
 fn get_quote(text: &str) -> Result<(String, Quote)> {
-    let leading_quote = match text.chars().nth(0) {
+    let leading_quote = match text.chars().next() {
         Some('\'') => Quote::SingleQuoted,
         Some('\"') => Quote::DoubleQuoted,
         _ => Quote::Unquoted,
