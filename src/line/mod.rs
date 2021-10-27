@@ -144,7 +144,7 @@ impl Line {
 // Quotes and braces are preserved, whitespace is removed
 pub fn break_line_into_words(line: &str) -> Result<Vec<String>> {
     #[derive(PartialEq, Eq)]
-    enum WordState {
+    enum State {
         SingleQuoted,
         DoubleQuoted,
         Unquoted,
@@ -154,11 +154,11 @@ pub fn break_line_into_words(line: &str) -> Result<Vec<String>> {
     let mut words = Vec::<String>::new();
     let mut word = String::new();
 
-    let mut state = WordState::Unquoted;
+    let mut state = State::Unquoted;
 
     for ch in line.chars() {
         match state {
-            WordState::Unquoted => match ch {
+            State::Unquoted => match ch {
                 ' ' | '\n' | '\t' => {
                     if !word.is_empty() {
                         words.push(word);
@@ -167,46 +167,46 @@ pub fn break_line_into_words(line: &str) -> Result<Vec<String>> {
                 }
                 '\'' => {
                     word.push(ch);
-                    state = WordState::SingleQuoted;
+                    state = State::SingleQuoted;
                 }
                 '\"' => {
                     word.push(ch);
-                    state = WordState::DoubleQuoted;
+                    state = State::DoubleQuoted;
                 }
                 '{' => {
                     word.push(ch);
-                    state = WordState::Expansion(1);
+                    state = State::Expansion(1);
                 }
                 _ => {
                     word.push(ch);
                 }
             },
-            WordState::SingleQuoted => {
+            State::SingleQuoted => {
                 word.push(ch);
                 if ch == '\'' {
                     words.push(word);
                     word = String::new();
-                    state = WordState::Unquoted;
+                    state = State::Unquoted;
                 } 
             }
-            WordState::DoubleQuoted => {
+            State::DoubleQuoted => {
                 word.push(ch);
                 if ch == '\"' {
                     word.push(ch);
                     words.push(word);
                     word = String::new();
-                    state = WordState::Unquoted;
+                    state = State::Unquoted;
                 } 
             }
-            WordState::Expansion(n) => {
+            State::Expansion(n) => {
                 if ch == '{' {
-                    state = WordState::Expansion(n + 1);
+                    state = State::Expansion(n + 1);
                 } else if ch == '}' {
-                    state = WordState::Expansion(n - 1);
+                    state = State::Expansion(n - 1);
                 }
 
-                if state == WordState::Expansion(0) {
-                    state = WordState::Unquoted
+                if state == State::Expansion(0) {
+                    state = State::Unquoted
                 }
 
                 word.push(ch)
@@ -219,10 +219,10 @@ pub fn break_line_into_words(line: &str) -> Result<Vec<String>> {
     }
 
     match state {
-        WordState::SingleQuoted => Err(anyhow!("Unmatched single quote.")),
-        WordState::DoubleQuoted => Err(anyhow!("Unmatched double quote.")),
-        WordState::Expansion(_) => Err(anyhow!("Unmatched brace.")),
-        WordState::Unquoted => Ok(words),
+        State::SingleQuoted => Err(anyhow!("Unmatched single quote.")),
+        State::DoubleQuoted => Err(anyhow!("Unmatched double quote.")),
+        State::Expansion(_) => Err(anyhow!("Unmatched brace.")),
+        State::Unquoted => Ok(words),
     }
 }
 
