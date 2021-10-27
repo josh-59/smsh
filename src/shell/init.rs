@@ -2,7 +2,13 @@ use xdg::BaseDirectories;
 
 use super::modules::Module;
 use super::{load_module, Builtin, Shell};
-use crate::sources::{script::Script, user_function::UserFunction};
+use super::state::State;
+use crate::sources::{
+    script::Script, 
+    user_function::UserFunction,
+    tty::Tty,
+};
+
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -10,12 +16,14 @@ use std::path::PathBuf;
 // We do not want this function to fail, so that
 // a user of smsh always gets into its main loop.
 pub fn init() -> Shell {
+    let state = State::new();
     let sources = vec![];
     let builtins = HashMap::<&'static str, Builtin>::new();
     let user_variables = HashMap::<String, String>::new();
     let user_functions = HashMap::<String, UserFunction>::new();
 
     let mut smsh = Shell {
+        state,
         sources,
         builtins,
         user_variables,
@@ -24,13 +32,16 @@ pub fn init() -> Shell {
 
     load_module(&mut smsh, Module::Core);
 
-    push_init_script(&mut smsh);
+    if smsh.state().is_interactive() {
+        smsh.push_source(Tty::build_source());
+        push_interactive_init_script(&mut smsh);
+    }
 
     smsh
 }
 
 // Again, we do not want this function to fail.
-pub fn push_init_script(smsh: &mut Shell) {
+fn push_interactive_init_script(smsh: &mut Shell) {
     match BaseDirectories::new() {
         Ok(base_dirs) => {
             let temp = PathBuf::from("smsh/init");
