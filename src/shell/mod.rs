@@ -4,12 +4,16 @@ use anyhow::Result;
 
 use std::collections::HashMap;
 
+mod state;
+use state::State;
 mod modules;
 use modules::*;
 mod init;
 use init::init;
 
+
 pub struct Shell {
+    state: State,
     sources: Vec<Box<dyn Source>>,
     builtins: HashMap<&'static str, Builtin>,
     user_variables: HashMap<String, String>,
@@ -95,12 +99,12 @@ impl Shell {
         }
     }
 
-    pub fn is_interactive(&self) -> bool {
-        true
-    }
-
     pub fn reset_interactive(&mut self) {
         self.sources.clear();
         self.sources.push(Tty::build_source());
+    }
+
+    pub fn state(&self) -> &State {
+        &self.state
     }
 }
