@@ -1,6 +1,6 @@
 use crate::line::Line;
 use crate::sources::{tty::Tty, user_function::UserFunction, BufferSource, Source};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 
 use std::collections::HashMap;
 
@@ -91,14 +91,20 @@ impl Shell {
         self.user_functions.insert(func.name().to_string(), func);
     }
 
-    pub fn push_user_function(&mut self, args: &[String]) -> bool {
-        if args.is_empty() {
-            false
-        } else if let Some(func) = self.user_functions.get(&args[0]) {
-            self.sources.push(func.build_source());
-            true
+    pub fn is_user_function(&self, name: &str) -> bool {
+        self.user_functions.contains_key(name)
+    }
+
+    pub fn push_user_function(&mut self, args: &[String]) -> Result<()>{
+        if !args.is_empty() {
+            if let Some(func) = self.user_functions.get(&args[0]) {
+                self.sources.push(func.build_source());
+                Ok(())
+            } else {
+                Err(anyhow!("push_user_function: Function not found."))
+            }
         } else {
-            false
+            Err(anyhow!("push_user_function: Empty argument vector."))
         }
     }
 
