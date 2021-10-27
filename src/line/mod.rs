@@ -11,7 +11,7 @@ mod word;
 use word::Word;
 
 // Represents a logical line given to the shell.
-// Notably, a line can transcend physical lines by
+// A logical line can transcend physical lines by
 // quoting, by backslash escaping a newline, and by
 // terminating a line with a pipe operator.
 #[derive(Clone)]
