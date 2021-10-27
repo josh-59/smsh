@@ -1,27 +1,30 @@
 use anyhow::Result;
 
-use crate::line::Line;
 use super::{Source, SourceKind};
+use crate::line::Line;
 
-use std::path::PathBuf;
 use std::fs::read_to_string;
+use std::path::PathBuf;
 
 #[derive(Clone)]
 pub struct Script {
     path: PathBuf,
     body: Vec<String>,
-    line_num: usize
+    line_num: usize,
 }
 
 impl Script {
     pub fn new(path: PathBuf) -> Result<Box<dyn Source>> {
-
         let body = read_to_string(&path)?
             .lines()
             .map(|x| x.to_string())
             .collect();
 
-        let script = Script { path, body, line_num: 0 };
+        let script = Script {
+            path,
+            body,
+            line_num: 0,
+        };
 
         Ok(Box::new(script))
     }
@@ -46,6 +49,6 @@ impl Source for Script {
     }
 
     fn is_tty(&self) -> bool {
-        false 
+        false
     }
 }

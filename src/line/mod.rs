@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Context, Result};
-use nix::unistd::{self, fork, ForkResult};
 use nix::sys::wait::wait;
+use nix::unistd::{self, fork, ForkResult};
 use std::ffi::CString;
 use std::fmt;
 
@@ -9,7 +9,6 @@ use super::sources::SourceKind;
 
 mod word;
 use word::Word;
-
 
 // Represents a logical line given to the shell.
 // Notably, a line can transcend physical lines by
@@ -20,7 +19,7 @@ pub struct Line {
     rawline: String,
     line_num: usize,
     source: SourceKind,
-    indentation: usize
+    indentation: usize,
 }
 
 impl Line {
@@ -36,7 +35,12 @@ impl Line {
 
         let rawline = rawline[leading_spaces..].to_string();
 
-        Line { rawline, line_num, source, indentation: leading_spaces / 4 } 
+        Line {
+            rawline,
+            line_num,
+            source,
+            indentation: leading_spaces / 4,
+        }
     }
 
     pub fn append(&mut self, text: String) {
@@ -86,7 +90,6 @@ impl Line {
     }
 
     pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
-
         let substrings = break_line_into_words(&self.rawline)?;
 
         let mut words = Vec::<String>::new();
@@ -110,10 +113,10 @@ impl Line {
 
         if smsh.push_user_function(&words) {
             Ok(())
-        } else if let Some(f) = smsh.get_builtin(&words[0]){
+        } else if let Some(f) = smsh.get_builtin(&words[0]) {
             f(smsh, strs)
         } else {
-            match unsafe{fork()?} {
+            match unsafe { fork()? } {
                 ForkResult::Parent { child: _, .. } => {
                     wait()?;
                     Ok(())
@@ -126,8 +129,10 @@ impl Line {
                     for word in strs {
                         args.push(CString::new(word)?);
                     }
-                    unistd::execvp(&command, &args)
-                        .context(format!("Unable to execute external command `{}`", &words[0]))?;
+                    unistd::execvp(&command, &args).context(format!(
+                        "Unable to execute external command `{}`",
+                        &words[0]
+                    ))?;
                     Ok(())
                 }
             }
@@ -153,31 +158,29 @@ pub fn break_line_into_words(line: &str) -> Result<Vec<String>> {
 
     for ch in line.chars() {
         match state {
-            WordState::Unquoted => {
-                match ch {
-                    ' ' | '\n' | '\t' => {
-                        if word.len() > 0 {
-                            words.push(word);
-                            word = String::new();
-                        }
-                    }
-                    '\'' => {
-                        word.push(ch);
-                        state = WordState::SingleQuoted;
-                    }
-                    '\"' => {
-                        word.push(ch);
-                        state = WordState::DoubleQuoted;
-                    }
-                    '{' => {
-                        word.push(ch);
-                        state = WordState::Expansion(1);
-                    }
-                    _ => {
-                        word.push(ch);
+            WordState::Unquoted => match ch {
+                ' ' | '\n' | '\t' => {
+                    if word.len() > 0 {
+                        words.push(word);
+                        word = String::new();
                     }
                 }
-            }
+                '\'' => {
+                    word.push(ch);
+                    state = WordState::SingleQuoted;
+                }
+                '\"' => {
+                    word.push(ch);
+                    state = WordState::DoubleQuoted;
+                }
+                '{' => {
+                    word.push(ch);
+                    state = WordState::Expansion(1);
+                }
+                _ => {
+                    word.push(ch);
+                }
+            },
             WordState::SingleQuoted => {
                 if ch == '\'' {
                     word.push(ch);
@@ -200,9 +203,9 @@ pub fn break_line_into_words(line: &str) -> Result<Vec<String>> {
             }
             WordState::Expansion(n) => {
                 if ch == '{' {
-                    state = WordState::Expansion(n+1);
+                    state = WordState::Expansion(n + 1);
                 } else if ch == '}' {
-                    state = WordState::Expansion(n-1);
+                    state = WordState::Expansion(n - 1);
                 }
 
                 if state == WordState::Expansion(0) {
@@ -219,18 +222,10 @@ pub fn break_line_into_words(line: &str) -> Result<Vec<String>> {
     }
 
     match state {
-        WordState::SingleQuoted => {
-            Err(anyhow!("Unmatched single quote."))
-        } 
-        WordState::DoubleQuoted => {
-            Err(anyhow!("Unmatched double quote."))
-        } 
-        WordState::Expansion(_) => {
-            Err(anyhow!("Unmatched brace."))
-        } 
-        WordState::Unquoted => {
-            Ok(words)
-        }
+        WordState::SingleQuoted => Err(anyhow!("Unmatched single quote.")),
+        WordState::DoubleQuoted => Err(anyhow!("Unmatched double quote.")),
+        WordState::Expansion(_) => Err(anyhow!("Unmatched brace.")),
+        WordState::Unquoted => Ok(words),
     }
 }
 
@@ -241,15 +236,26 @@ impl fmt::Display for Line {
                 write!(f, "TTY line {}:\n{}", self.line_num, self.rawline)
             }
             SourceKind::Subshell => {
-                write!(f, "Subshell Expansion line {}:\n{}", self.line_num, self.rawline)
+                write!(
+                    f,
+                    "Subshell Expansion line {}:\n{}",
+                    self.line_num, self.rawline
+                )
             }
             SourceKind::UserFunction(s) => {
-                write!(f, "Function `{}` line number {}:\n{}", s, self.line_num, self.rawline)
+                write!(
+                    f,
+                    "Function `{}` line number {}:\n{}",
+                    s, self.line_num, self.rawline
+                )
             }
             SourceKind::Script(s) => {
-                write!(f, "Script `{}` line number {}:\n{}", s, self.line_num, self.rawline)
+                write!(
+                    f,
+                    "Script `{}` line number {}:\n{}",
+                    s, self.line_num, self.rawline
+                )
             }
         }
     }
 }
-

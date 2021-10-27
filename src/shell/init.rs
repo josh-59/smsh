@@ -1,10 +1,8 @@
 use xdg::BaseDirectories;
 
-use crate::sources::{
-    user_function::UserFunction,
-    script::Script};
 use super::modules::Module;
-use super::{Shell, Builtin, load_module};
+use super::{load_module, Builtin, Shell};
+use crate::sources::{script::Script, user_function::UserFunction};
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -17,9 +15,9 @@ pub fn init() -> Shell {
     let user_variables = HashMap::<String, String>::new();
     let user_functions = HashMap::<String, UserFunction>::new();
 
-    let mut smsh = Shell { 
-        sources, 
-        builtins, 
+    let mut smsh = Shell {
+        sources,
+        builtins,
         user_variables,
         user_functions,
     };
@@ -46,7 +44,7 @@ pub fn push_init_script(smsh: &mut Shell) {
                         eprintln!("smsh: init: Unable to create script:\n{}", e);
                     }
                 }
-            } 
+            }
         }
         Err(e) => {
             eprintln!("smsh: init: Unable to obtain XDG Base Directories:\n{}", e);

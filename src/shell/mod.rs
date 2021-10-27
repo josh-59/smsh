@@ -1,10 +1,6 @@
-use anyhow::Result;
-use crate::sources::{
-    Source,
-    user_function::UserFunction,
-    BufferSource,
-    tty::TTY};
 use crate::line::Line;
+use crate::sources::{tty::TTY, user_function::UserFunction, BufferSource, Source};
+use anyhow::Result;
 
 use std::collections::HashMap;
 
@@ -26,7 +22,6 @@ impl Shell {
     }
 
     pub fn run(&mut self) -> Result<()> {
-
         if self.is_interactive() {
             self.reset_interactive();
         }
@@ -67,13 +62,13 @@ impl Shell {
                     break;
                 }
             }
-        } 
+        }
 
         Ok(lines)
     }
 
     pub fn get_builtin(&self, command: &str) -> Option<&Builtin> {
-        self.builtins.get(command) 
+        self.builtins.get(command)
     }
 
     pub fn push_source(&mut self, source: Box<dyn Source>) {

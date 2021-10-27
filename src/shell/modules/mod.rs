@@ -1,12 +1,12 @@
-use anyhow::{anyhow, Result};
 use super::Shell;
+use anyhow::{anyhow, Result};
 
 mod core;
 
-pub type Builtin = fn(&mut Shell, Vec::<&str>) -> Result<()>;
+pub type Builtin = fn(&mut Shell, Vec<&str>) -> Result<()>;
 
 pub enum Module {
-    Core
+    Core,
 }
 
 pub fn load_module(smsh: &mut Shell, module: Module) {
@@ -17,15 +17,14 @@ pub fn load_module(smsh: &mut Shell, module: Module) {
             smsh.builtins.insert("fn", core::r#fn);
             smsh.builtins.insert("exit", core::exit);
             smsh.builtins.insert("self::load_module", core::lm_builtin);
-            smsh.builtins.insert("self::unload_module", core::ulm_builtin);
+            smsh.builtins
+                .insert("self::unload_module", core::ulm_builtin);
         }
     }
 }
 
 pub fn unload_module(_smsh: &mut Shell, module: Module) -> Result<()> {
     match module {
-        Module::Core => {
-            Err(anyhow!("Unable to unload smsh core module!"))
-        }
+        Module::Core => Err(anyhow!("Unable to unload smsh core module!")),
     }
 }

@@ -2,24 +2,23 @@ use anyhow::{anyhow, Result};
 use nix::unistd::getuid;
 use std::io::{self, Stdin, Write};
 
-use crate::line::Line;
 use super::{Source, SourceKind};
+use crate::line::Line;
 
 pub struct TTY {
     stdin: Stdin,
-    line_num: usize
+    line_num: usize,
 }
 
 impl TTY {
     pub fn new() -> Box<dyn Source> {
         let stdin = io::stdin();
 
-        Box::new(TTY{ stdin, line_num: 0})
+        Box::new(TTY { stdin, line_num: 0 })
     }
 
     // Used to complete logical lines when they transcend physical lines
     pub fn get_secondary_line(&mut self) -> Result<Option<String>> {
-
         let mut buffer = String::new();
 
         print!("> ");
@@ -46,7 +45,6 @@ impl Source for TTY {
                 "$ ".to_string()
             }
         };
-
 
         let mut buffer = String::new();
 

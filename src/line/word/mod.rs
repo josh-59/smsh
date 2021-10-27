@@ -1,5 +1,5 @@
-use anyhow::{anyhow, Result};
 use crate::shell::Shell;
+use anyhow::{anyhow, Result};
 
 mod selection;
 use selection::get_selection;
@@ -24,9 +24,9 @@ pub enum Expansion {
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Separator {
-    None,           // If single- or double-quoted
-    Whitespace,     // Default
-    Line,           
+    None,       // If single- or double-quoted
+    Whitespace, // Default
+    Line,
     Arbitrary(String),
 }
 
@@ -49,25 +49,20 @@ pub struct Word {
 // Words expand themselves (wrt a given shell).
 impl Word {
     pub fn new(text: String) -> Result<Word> {
-
-        let (text, quote)  = get_quote(&text)?;
+        let (text, quote) = get_quote(&text)?;
 
         let (text, selection) = get_selection(&text)?;
 
         let (text, expansion) = match quote {
-            Quote::SingleQuoted => {
-                (text, Expansion::None)
-            }
-            _ => {
-                get_expansion(&text)
-            }
+            Quote::SingleQuoted => (text, Expansion::None),
+            _ => get_expansion(&text),
         };
 
         let word = Word {
             text,
             expansion,
             separator: Separator::Whitespace,
-            selection
+            selection,
         };
 
         Ok(word)
@@ -81,7 +76,7 @@ impl Word {
         expand(self, smsh)
     }
 
-    pub fn select(&mut self) -> Result<()>{
+    pub fn select(&mut self) -> Result<()> {
         Ok(())
     }
 
@@ -94,31 +89,17 @@ impl Word {
     }
 }
 
-
 fn get_quote(text: &str) -> Result<(String, Quote)> {
     let leading_quote = match text.chars().nth(0) {
-        Some('\'') => {
-            Quote::SingleQuoted
-        }
-        Some('\"') => {
-            Quote::DoubleQuoted
-        }
-        _ => {
-            Quote::Unquoted
-        }
+        Some('\'') => Quote::SingleQuoted,
+        Some('\"') => Quote::DoubleQuoted,
+        _ => Quote::Unquoted,
     };
 
-
     let trailing_quote = match text.chars().last() {
-        Some('\'') => {
-            Quote::SingleQuoted
-        }
-        Some('\"') => {
-            Quote::DoubleQuoted
-        }
-        _ => {
-            Quote::Unquoted
-        }
+        Some('\'') => Quote::SingleQuoted,
+        Some('\"') => Quote::DoubleQuoted,
+        _ => Quote::Unquoted,
     };
 
     if leading_quote == trailing_quote {
@@ -127,10 +108,8 @@ fn get_quote(text: &str) -> Result<(String, Quote)> {
                 let mut s = text[1..].to_string();
                 s.pop();
                 Ok((s, leading_quote))
-            } 
-            Quote::Unquoted => {
-                Ok((text.to_string(), leading_quote))
             }
+            Quote::Unquoted => Ok((text.to_string(), leading_quote)),
         }
     } else {
         Err(anyhow!("Unmatched quote"))
@@ -140,7 +119,7 @@ fn get_quote(text: &str) -> Result<(String, Quote)> {
 #[cfg(test)]
 mod test {
     use super::*;
-    
+
     #[test]
     fn create_word_1() {
         let cmd = "cat".to_string();
@@ -154,7 +133,7 @@ mod test {
 
         assert_eq!(word, Word::new(cmd).unwrap());
     }
- 
+
     #[test]
     fn create_word_2() {
         let cmd = "{cmd}".to_string();
@@ -168,7 +147,7 @@ mod test {
 
         assert_eq!(word, Word::new(cmd).unwrap());
     }
- 
+
     #[test]
     fn create_word_3() {
         let cmd = "!{cmd}".to_string();

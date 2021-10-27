@@ -1,18 +1,22 @@
 use anyhow::Result;
 
-use crate::line::Line;
 use super::{Source, SourceKind};
+use crate::line::Line;
 
 #[derive(Clone)]
 pub struct UserFunction {
     fn_name: String,
     fn_body: Vec<String>,
-    line_num: usize
+    line_num: usize,
 }
 
 impl UserFunction {
     pub fn new(fn_name: String, fn_body: Vec<String>) -> UserFunction {
-        UserFunction { fn_name, fn_body, line_num: 0 }
+        UserFunction {
+            fn_name,
+            fn_body,
+            line_num: 0,
+        }
     }
 
     pub fn build_source(&self) -> Box<dyn Source> {
@@ -32,11 +36,15 @@ impl Source for UserFunction {
         } else {
             let text = self.fn_body[self.line_num].clone();
             self.line_num += 1;
-            Ok(Some(Line::new(text, self.line_num, SourceKind::UserFunction(self.fn_name.clone()))))
+            Ok(Some(Line::new(
+                text,
+                self.line_num,
+                SourceKind::UserFunction(self.fn_name.clone()),
+            )))
         }
     }
 
     fn is_tty(&self) -> bool {
-        false 
+        false
     }
 }

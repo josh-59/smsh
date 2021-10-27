@@ -2,16 +2,16 @@ use anyhow::Result;
 
 use super::line::Line;
 
+pub mod script;
 pub mod tty;
 pub mod user_function;
-pub mod script;
 
 #[derive(PartialEq, Eq, Clone)]
 pub enum SourceKind {
     TTY,
-    Subshell, 
-    UserFunction(String),   // String contains function name
-    Script(String),         // String contains script pathname
+    Subshell,
+    UserFunction(String), // String contains function name
+    Script(String),       // String contains script pathname
 }
 
 pub trait Source {
@@ -28,10 +28,7 @@ pub struct BufferSource {
 
 impl BufferSource {
     pub fn new(lines: Vec<Line>) -> Box<dyn Source> {
-        Box::new(BufferSource { 
-            lines, 
-            line_num: 0,
-        })
+        Box::new(BufferSource { lines, line_num: 0 })
     }
 }
 

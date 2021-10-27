@@ -1,6 +1,6 @@
+mod line;
 mod shell;
 mod sources;
-mod line;
 
 use shell::Shell;
 

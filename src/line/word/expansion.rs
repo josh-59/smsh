@@ -1,17 +1,17 @@
-use anyhow::Result;
-use crate::shell::Shell;
-use crate::sources::{SourceKind, BufferSource};
 use crate::line::Line;
+use crate::shell::Shell;
+use crate::sources::{BufferSource, SourceKind};
+use anyhow::Result;
 
-use super::{Word, Expansion};
+use super::{Expansion, Word};
 
 use std::env;
-use std::os::unix::io::{RawFd, FromRawFd};
 use std::fs::File;
 use std::io::Read;
+use std::os::unix::io::{FromRawFd, RawFd};
 
-use nix::unistd::{fork, pipe, ForkResult, close, dup2};
 use nix::sys::wait::wait;
+use nix::unistd::{close, dup2, fork, pipe, ForkResult};
 
 pub fn expand(word: &mut Word, smsh: &mut Shell) -> Result<()> {
     match word.expansion {
@@ -38,9 +38,7 @@ pub fn expand(word: &mut Word, smsh: &mut Shell) -> Result<()> {
 
             Ok(())
         }
-        _ => {
-            Ok(())
-        }
+        _ => Ok(()),
     }
 }
 
@@ -68,10 +66,10 @@ pub fn get_expansion(text: &str) -> (String, Expansion) {
     }
 }
 
-pub fn subshell_expand(smsh: &mut Shell, line: &str) -> Result<String>{
+pub fn subshell_expand(smsh: &mut Shell, line: &str) -> Result<String> {
     let (rd, wr) = pipe()?;
 
-    match unsafe{fork()?} {
+    match unsafe { fork()? } {
         ForkResult::Parent { child: _, .. } => {
             close(wr)?;
 
@@ -87,7 +85,7 @@ pub fn subshell_expand(smsh: &mut Shell, line: &str) -> Result<String>{
             Ok(buf)
         }
         ForkResult::Child => {
-            smsh.clear_sources(); 
+            smsh.clear_sources();
 
             close(rd)?;
             close(1 as RawFd)?;

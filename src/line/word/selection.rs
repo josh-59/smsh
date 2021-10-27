@@ -9,7 +9,7 @@ enum State {
     OnFirstNum,
     FoundFirstPeriod,
     FoundSecondPeriod,
-    Invalid
+    Invalid,
 }
 
 // Returns text with selector removed.
@@ -28,7 +28,7 @@ pub fn get_selection(text: &str) -> Result<(String, Selection)> {
 fn get_selector(text: &str) -> Option<(String, String)> {
     if text.ends_with("]") {
         if let Some(brace_index) = text.rfind("[") {
-            let selector: String = text[brace_index + 1 .. text.len() - 1].to_string();
+            let selector: String = text[brace_index + 1..text.len() - 1].to_string();
             let text: String = text[..brace_index].to_string();
 
             if selector.len() == 0 {
@@ -76,19 +76,13 @@ fn _get_selection(selector: String) -> Result<Selection> {
                     state = State::Invalid;
                 }
             }
-            State::Invalid => {
-                break
-            }
+            State::Invalid => break,
         }
     }
 
     match state {
-        State::OnFirstNum => {
-            Ok(Selection::Index(first_num))
-        }
-        State::FoundSecondPeriod => {
-            Ok(Selection::Slice(first_num, second_num))
-        }
+        State::OnFirstNum => Ok(Selection::Index(first_num)),
+        State::FoundSecondPeriod => Ok(Selection::Slice(first_num, second_num)),
         State::Invalid | State::FoundFirstPeriod => {
             Err(anyhow!("Invalid selection [{}]", selector))
         }
@@ -150,37 +144,58 @@ mod test {
 
     #[test]
     fn _get_selection_test_1() {
-        assert_eq!(Selection::Index(0), _get_selection("0".to_string()).unwrap());
+        assert_eq!(
+            Selection::Index(0),
+            _get_selection("0".to_string()).unwrap()
+        );
     }
 
     #[test]
     fn _get_selection_test_2() {
-        assert_eq!(Selection::Index(10), _get_selection("10".to_string()).unwrap());
+        assert_eq!(
+            Selection::Index(10),
+            _get_selection("10".to_string()).unwrap()
+        );
     }
 
     #[test]
     fn _get_selection_test_3() {
-        assert_eq!(Selection::Slice(0, 5), _get_selection("0..5".to_string()).unwrap());
+        assert_eq!(
+            Selection::Slice(0, 5),
+            _get_selection("0..5".to_string()).unwrap()
+        );
     }
 
     #[test]
     fn _get_selection_test_4() {
-        assert_eq!(Selection::Slice(0, 10), _get_selection("0..10".to_string()).unwrap());
+        assert_eq!(
+            Selection::Slice(0, 10),
+            _get_selection("0..10".to_string()).unwrap()
+        );
     }
 
     #[test]
     fn _get_selection_test_5() {
-        assert_eq!(Selection::Slice(10, 10), _get_selection("10..10".to_string()).unwrap());
+        assert_eq!(
+            Selection::Slice(10, 10),
+            _get_selection("10..10".to_string()).unwrap()
+        );
     }
 
     #[test]
     fn _get_selection_test_6() {
-        assert_eq!(Selection::Slice(0, 10), _get_selection("..10".to_string()).unwrap());
+        assert_eq!(
+            Selection::Slice(0, 10),
+            _get_selection("..10".to_string()).unwrap()
+        );
     }
 
     #[test]
     fn _get_selection_test_7() {
-        assert_eq!(Selection::Slice(3, 0), _get_selection("3..".to_string()).unwrap());
+        assert_eq!(
+            Selection::Slice(3, 0),
+            _get_selection("3..".to_string()).unwrap()
+        );
     }
 
     #[test]
@@ -201,6 +216,4 @@ mod test {
     fn _get_selection_test_11() {
         assert!(_get_selection("a...b".to_string()).is_err());
     }
-
 }
-
