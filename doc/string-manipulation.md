@@ -15,14 +15,12 @@ By default, strings are separated by UTF-8 Whitespace.
 By default, the entire sequence of substrings is selected.
 
 Separation Modifiers:
-    {}          [None] Split by word
-    {}S=":"     Arbitrary Separators
+    {}          [None] Split by whitespace 
     {}L         Split by line
-    {}R         Raw (Do not split)
+    {}S=":"     Arbitrary Separators
 
 Selection
     {}[n]       Index
     {}[n..m]    Slice 
     {}[n..]     Slice
     {}[..n]     Slice
-
