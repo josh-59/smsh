@@ -1,6 +1,6 @@
 use crate::line::Line;
 use crate::sources::{tty::Tty, user_function::UserFunction, BufferSource, Source};
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 
 use std::collections::HashMap;
 
@@ -22,10 +22,6 @@ impl Shell {
     }
 
     pub fn run(&mut self) -> Result<()> {
-        if self.is_interactive() {
-            self.reset_interactive();
-        }
-
         while let Some(mut line) = self.get_line()? {
             line.execute(self)?;
         }
@@ -67,10 +63,6 @@ impl Shell {
         Ok(lines)
     }
 
-    pub fn get_builtin(&self, command: &str) -> Option<&Builtin> {
-        self.builtins.get(command)
-    }
-
     pub fn push_source(&mut self, source: Box<dyn Source>) {
         self.sources.push(source)
     }
@@ -91,20 +83,15 @@ impl Shell {
         self.user_functions.insert(func.name().to_string(), func);
     }
 
-    pub fn is_user_function(&self, name: &str) -> bool {
-        self.user_functions.contains_key(name)
+    pub fn get_builtin(&self, command: &str) -> Option<&Builtin> {
+        self.builtins.get(command)
     }
 
-    pub fn push_user_function(&mut self, args: &[String]) -> Result<()>{
-        if !args.is_empty() {
-            if let Some(func) = self.user_functions.get(&args[0]) {
-                self.sources.push(func.build_source());
-                Ok(())
-            } else {
-                Err(anyhow!("push_user_function: Function not found."))
-            }
+    pub fn get_user_function(&self, name: &str) -> Option<UserFunction> {
+        if let Some(func) = self.user_functions.get(name) {
+            Some(func.clone())
         } else {
-            Err(anyhow!("push_user_function: Empty argument vector."))
+            None
         }
     }
 

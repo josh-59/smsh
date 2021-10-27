@@ -111,8 +111,9 @@ impl Line {
             return Ok(());
         }
 
-        if smsh.is_user_function(strs[0]) {
-            smsh.push_user_function(&words)
+        if let Some(f) = smsh.get_user_function(strs[0]) {
+            smsh.push_source(f.build_source());
+            Ok(())
         } else if let Some(f) = smsh.get_builtin(&words[0]) {
             f(smsh, strs)
         } else {
