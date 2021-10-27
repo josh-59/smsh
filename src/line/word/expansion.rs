@@ -16,10 +16,7 @@ use nix::sys::wait::wait;
 pub fn expand(word: &mut Word, smsh: &mut Shell) -> Result<()> {
     match word.expansion {
         Expansion::Variable => {
-            let mut key = word.text[1..].to_string();
-            key.pop();
-
-            if let Some(val) = smsh.get_user_variable(&key) {
+            if let Some(val) = smsh.get_user_variable(&word.text) {
                 word.text = val;
             } else {
                 word.text.clear();
@@ -28,10 +25,7 @@ pub fn expand(word: &mut Word, smsh: &mut Shell) -> Result<()> {
             Ok(())
         }
         Expansion::Environment => {
-            let mut key = word.text[2..].to_string();
-            key.pop();
-
-            if let Some(val) = env::var_os(key) {
+            if let Some(val) = env::var_os(&word.text) {
                 word.text = val.into_string().unwrap_or("".to_string());
             } else {
                 word.text.clear();
@@ -40,9 +34,7 @@ pub fn expand(word: &mut Word, smsh: &mut Shell) -> Result<()> {
             Ok(())
         }
         Expansion::Subshell => {
-            let mut line = word.text[2..].to_string();
-            line.pop();
-            word.text = subshell_expand(smsh, line)?;
+            word.text = subshell_expand(smsh, &word.text)?;
 
             Ok(())
         }
@@ -52,25 +44,31 @@ pub fn expand(word: &mut Word, smsh: &mut Shell) -> Result<()> {
     }
 }
 
-pub fn get_expansion(text: &str) -> Expansion {
+pub fn get_expansion(text: &str) -> (String, Expansion) {
     if text.len() < 2 {
-        Expansion::None
+        (text.to_string(), Expansion::None)
     } else if text.starts_with("{") && text.ends_with("}") {
-            Expansion::Variable
+        let mut s = text[1..].to_string();
+        s.pop();
+        (s, Expansion::Variable)
     } else if text.starts_with("!{") && text.ends_with("}") {
-            Expansion::Subshell
+        let mut s = text[2..].to_string();
+        s.pop();
+        (s, Expansion::Subshell)
     } else if text.starts_with("e{") && text.ends_with("}") {
-            Expansion::Environment
+        let mut s = text[2..].to_string();
+        s.pop();
+        (s, Expansion::Environment)
     } else if text[0..2].contains("{") {
-        Expansion::Unknown
+        let mut s = text[2..].to_string();
+        s.pop();
+        (s, Expansion::Unknown)
     } else {
-        Expansion::None
+        (text.to_string(), Expansion::None)
     }
 }
 
-pub fn subshell_expand(smsh: &mut Shell, line: String) -> Result<String>{
-    eprintln!("Subshell expanding line:\n{}", line);
-
+pub fn subshell_expand(smsh: &mut Shell, line: &str) -> Result<String>{
     let (rd, wr) = pipe()?;
 
     match unsafe{fork()?} {
@@ -96,7 +94,7 @@ pub fn subshell_expand(smsh: &mut Shell, line: String) -> Result<String>{
             dup2(wr, 1 as RawFd)?;
             close(wr)?;
 
-            let line = Line::new(line, 0, SourceKind::Subshell);
+            let line = Line::new(line.to_string(), 0, SourceKind::Subshell);
             smsh.push_source(BufferSource::new(vec![line]));
 
             while let Err(e) = smsh.run() {

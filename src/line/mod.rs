@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use nix::unistd::{self, fork, ForkResult};
 use nix::sys::wait::wait;
 use std::ffi::CString;
@@ -8,7 +8,8 @@ use super::shell::Shell;
 use super::sources::SourceKind;
 
 mod word;
-use word::get_words_from_str;
+use word::Word;
+
 
 // Represents a logical line given to the shell.
 // Notably, a line can transcend physical lines by
@@ -86,30 +87,30 @@ impl Line {
 
     pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
 
-        let mut words = get_words_from_str(&self.rawline)?;
+        let substrings = break_line_into_words(&self.rawline)?;
 
-        for word in &mut words {
+        let mut words = Vec::<String>::new();
+
+        for s in substrings {
+            let mut word = Word::new(s)?;
             word.expand(smsh)?;
             word.separate()?;
             word.select()?;
+
+            if !word.is_empty() {
+                words.push(word.text().to_string());
+            }
         }
+
+        let strs = words.iter().map(|x| x.as_str()).collect();
 
         if words.len() == 0 {
             return Ok(());
         }
 
-        let strs: Vec<&str> = words.iter()
-            .filter_map(|x| 
-                        if !x.is_empty() {
-                            Some(x.text())
-                        } else {
-                            None
-                        })
-            .collect();
-
-        if smsh.push_user_function(&strs) {
+        if smsh.push_user_function(&words) {
             Ok(())
-        } else if let Some(f) = smsh.get_builtin(strs[0]){
+        } else if let Some(f) = smsh.get_builtin(&words[0]){
             f(smsh, strs)
         } else {
             match unsafe{fork()?} {
@@ -120,16 +121,115 @@ impl Line {
                 ForkResult::Child => {
                     smsh.clear_sources();
 
-                    let command = CString::new(strs[0].to_string())?;
+                    let command = CString::new(strs[0])?;
                     let mut args = vec![];
-                    for s in &strs {
-                        args.push(CString::new(s.to_string())?);
+                    for word in strs {
+                        args.push(CString::new(word)?);
                     }
                     unistd::execvp(&command, &args)
-                        .context(format!("Unable to execute external command `{}`", words[0].text()))?;
+                        .context(format!("Unable to execute external command `{}`", &words[0]))?;
                     Ok(())
                 }
             }
+        }
+    }
+}
+
+// Breaks line into words according to quoting rules.
+// Quotes and braces are preserved, whitespace is removed
+pub fn break_line_into_words(line: &str) -> Result<Vec<String>> {
+    #[derive(PartialEq, Eq)]
+    enum WordState {
+        SingleQuoted,
+        DoubleQuoted,
+        Unquoted,
+        Expansion(usize),
+    }
+
+    let mut words = Vec::<String>::new();
+    let mut word = String::new();
+
+    let mut state = WordState::Unquoted;
+
+    for ch in line.chars() {
+        match state {
+            WordState::Unquoted => {
+                match ch {
+                    ' ' | '\n' | '\t' => {
+                        if word.len() > 0 {
+                            words.push(word);
+                            word = String::new();
+                        }
+                    }
+                    '\'' => {
+                        word.push(ch);
+                        state = WordState::SingleQuoted;
+                    }
+                    '\"' => {
+                        word.push(ch);
+                        state = WordState::DoubleQuoted;
+                    }
+                    '{' => {
+                        word.push(ch);
+                        state = WordState::Expansion(1);
+                    }
+                    _ => {
+                        word.push(ch);
+                    }
+                }
+            }
+            WordState::SingleQuoted => {
+                if ch == '\'' {
+                    word.push(ch);
+                    words.push(word);
+                    word = String::new();
+                    state = WordState::Unquoted;
+                } else {
+                    word.push(ch);
+                }
+            }
+            WordState::DoubleQuoted => {
+                if ch == '\"' {
+                    word.push(ch);
+                    words.push(word);
+                    word = String::new();
+                    state = WordState::Unquoted;
+                } else {
+                    word.push(ch);
+                }
+            }
+            WordState::Expansion(n) => {
+                if ch == '{' {
+                    state = WordState::Expansion(n+1);
+                } else if ch == '}' {
+                    state = WordState::Expansion(n-1);
+                }
+
+                if state == WordState::Expansion(0) {
+                    state = WordState::Unquoted
+                }
+
+                word.push(ch)
+            }
+        }
+    }
+
+    if word.len() > 0 {
+        words.push(word);
+    }
+
+    match state {
+        WordState::SingleQuoted => {
+            Err(anyhow!("Unmatched single quote."))
+        } 
+        WordState::DoubleQuoted => {
+            Err(anyhow!("Unmatched double quote."))
+        } 
+        WordState::Expansion(_) => {
+            Err(anyhow!("Unmatched brace."))
+        } 
+        WordState::Unquoted => {
+            Ok(words)
         }
     }
 }
