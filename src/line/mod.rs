@@ -24,20 +24,33 @@ pub struct Line {
 
 impl Line {
     pub fn new(rawline: String, line_num: usize, source: SourceKind) -> Line {
-        let mut leading_spaces: usize = 0;
+        let mut spaces: usize = 0;
+        let mut leading_whitespace: usize = 0;
+        let mut indentation: usize = 0;
+
         for ch in rawline.chars() {
             if ch == ' ' {
-                leading_spaces += 1;
+                if spaces == 3 {
+                    spaces = 0;
+                    indentation += 1;
+                    leading_whitespace += 1;
+                } else {
+                    spaces += 1;
+                }
+            } else if ch == '\t' {
+                spaces = 0;
+                indentation += 1;
+                leading_whitespace += 1;
             } else {
                 break;
             }
         }
 
-        let rawline = rawline[leading_spaces..].to_string();
+        let rawline = rawline[leading_whitespace..].to_string();
 
         Line {
             rawline,
-            indentation: leading_spaces / 4,
+            indentation,
             source,
             line_num,
         }
@@ -57,6 +70,10 @@ impl Line {
 
     pub fn text(&self) -> String {
         self.rawline.clone()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.rawline.is_empty()
     }
 
     // True if line is a complete logical line
