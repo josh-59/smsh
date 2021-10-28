@@ -93,6 +93,7 @@ impl Line {
 
         let mut words = Vec::<String>::new();
 
+
         for s in self.get_words()? {
             let mut word = Word::new(s)?;
             word.expand(smsh)?;
@@ -185,21 +186,17 @@ impl Line {
                 State::SingleQuoted => {
                     word.push(ch);
                     if ch == '\'' {
-                        words.push(word);
-                        word = String::new();
                         state = State::Unquoted;
                     } 
                 }
                 State::DoubleQuoted => {
                     word.push(ch);
                     if ch == '\"' {
-                        word.push(ch);
-                        words.push(word);
-                        word = String::new();
                         state = State::Unquoted;
                     } 
                 }
                 State::Expansion(n) => {
+                    word.push(ch);
                     if ch == '{' {
                         state = State::Expansion(n + 1);
                     } else if ch == '}' {
@@ -209,8 +206,6 @@ impl Line {
                     if state == State::Expansion(0) {
                         state = State::Unquoted
                     }
-    
-                    word.push(ch)
                 }
             }
         }
