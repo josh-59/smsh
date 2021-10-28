@@ -1,6 +1,8 @@
 use crate::shell::Shell;
 use anyhow::{anyhow, Result};
 
+use std::cmp::min;
+
 mod expansion;
 use expansion::*;
 mod selection;
@@ -85,10 +87,6 @@ impl Word {
         Ok(word)
     }
 
-    pub fn text(&self) -> &str {
-        &self.text
-    }
-
     pub fn expand(&mut self, smsh: &mut Shell) -> Result<()> {
         expand(self, smsh)
     }
@@ -110,7 +108,29 @@ impl Word {
                 Ok(())
             }
             Selection::Slice(n, m) => {
-                Ok(())
+                if self.separated_text.len() == 0 {
+                    Ok(())
+                } else if *n < self.separated_text.len() {
+                    let mut words = Vec::<String>::new();
+
+                    if *m > *n {
+                        let min = min(self.separated_text.len() - 1, *m);
+
+                        for w in &self.separated_text[*n..min] {
+                            words.push(w.to_string())
+                        }
+                    } else if *m == 0 {
+                        for w in &self.separated_text[*n..] {
+                            words.push(w.to_string())
+                        }
+                    }
+
+                    self.separated_text = words;
+
+                    Ok(())
+                } else {
+                    Ok(())
+                }
             }
         }
     }
@@ -145,11 +165,8 @@ impl Word {
             }
         }
     }
-
-    pub fn is_empty(&self) -> bool {
-        self.text().is_empty()
-    }
 }
+
 
 fn get_quote(text: &str) -> Result<(String, Quote)> {
     let leading_quote = match text.chars().next() {
@@ -290,14 +307,88 @@ mod test {
 
     #[test]
     fn separate_1() {
-        let mut smsh = Shell::new();
-
         let cmd = "cat".to_string();
         let mut word = Word::new(cmd).unwrap();
+
+        word.separate().unwrap();
+
+        assert_eq!(word.separated_text, vec!["cat".to_string()])
+    }
+
+    #[test]
+    fn expand_separate_and_select_1() {
+        let mut smsh = Shell::new();
+
+        smsh.insert_user_variable("vec".to_string(), "zero one two three four".to_string());
+
+        let text = "{vec}".to_string();
+        let mut word = Word::new(text).unwrap();
 
         word.expand(&mut smsh).unwrap();
         word.separate().unwrap();
 
-        assert_eq!(word.separated_text, vec!["cat".to_string()])
+        let res = vec!["zero".to_string(),
+                        "one".to_string(),
+                        "two".to_string(),
+                        "three".to_string(),
+                        "four".to_string()];
+
+        assert_eq!(word.separated_text, res);
+    }
+
+    #[test]
+    fn expand_separate_and_select_2() {
+        let mut smsh = Shell::new();
+
+        smsh.insert_user_variable("vec".to_string(), "zero one two three four".to_string());
+
+        let text = "{vec}[0]".to_string();
+        let mut word = Word::new(text).unwrap();
+
+        word.expand(&mut smsh).unwrap();
+        word.separate().unwrap();
+        word.select().unwrap();
+
+        let res = vec!["zero".to_string()];
+
+        assert_eq!(word.separated_text, res);
+    }
+
+    #[test]
+    fn expand_separate_and_select_3() {
+        let mut smsh = Shell::new();
+
+        smsh.insert_user_variable("vec".to_string(), "zero one two three four".to_string());
+
+        let text = "{vec}[2]".to_string();
+        let mut word = Word::new(text).unwrap();
+
+        word.expand(&mut smsh).unwrap();
+        word.separate().unwrap();
+        word.select().unwrap();
+
+        let res = vec!["two".to_string()];
+
+        assert_eq!(word.separated_text, res);
+    }
+
+    #[test]
+    fn expand_separate_and_select_4() {
+        let mut smsh = Shell::new();
+
+        smsh.insert_user_variable("vec".to_string(), "zero one two three four".to_string());
+
+        let text = "{vec}[2..]".to_string();
+        let mut word = Word::new(text).unwrap();
+
+        word.expand(&mut smsh).unwrap();
+        word.separate().unwrap();
+        word.select().unwrap();
+
+        let res = vec!["two".to_string(),
+                        "three".to_string(),
+                        "four".to_string()];
+
+        assert_eq!(word.separated_text, res);
     }
 }
