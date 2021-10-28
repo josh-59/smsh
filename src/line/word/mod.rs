@@ -26,16 +26,17 @@ pub enum Expansion {
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Separator {
-    None,               // If single- or double-quoted
     Whitespace,         // Default
     Arbitrary(String),  // S="sep"
+    None,               // If single- or double-quoted
 }
 
+// TODO: Slice(Option<usize>, Option<usize>)
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Selection {
     All,
     Index(usize),
-    Slice(usize, usize),
+    Slice(usize, usize), // Omitted indices are represented by value zero. 
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -44,6 +45,7 @@ pub struct Word {
     expansion: Expansion,
     separator: Separator,
     selection: Selection,
+    pub separated_text: Vec<String>,
 }
 
 // A word is a single logical unit of input text.
@@ -77,6 +79,7 @@ impl Word {
             expansion,
             separator,
             selection,
+            separated_text: Vec::<String>::new(),
         };
 
         Ok(word)
@@ -91,11 +94,56 @@ impl Word {
     }
 
     pub fn select(&mut self) -> Result<()> {
-        Ok(())
+        match &self.selection {
+            Selection::All => {
+                Ok(())
+            }
+            Selection::Index(n) => {
+                if *n < self.separated_text.len() {
+                    let word = self.separated_text[*n].clone();
+                    self.separated_text.clear();
+                    self.separated_text.push(word);
+                } else {
+                    self.separated_text.clear();
+                }
+
+                Ok(())
+            }
+            Selection::Slice(n, m) => {
+                Ok(())
+            }
+        }
     }
 
     pub fn separate(&mut self) -> Result<()> {
-        Ok(())
+        match &self.separator {
+            Separator::Whitespace => {
+                let mut s = String::new();
+
+                for ch in self.text.chars() {
+                    if ch.is_whitespace() && !s.is_empty() {
+                        self.separated_text.push(s);
+                        s = String::new();
+                    } else {
+                        s.push(ch);
+                    }
+                }
+
+                if !s.is_empty() {
+                    self.separated_text.push(s);
+                }
+                
+                Ok(())
+            }
+            Separator::Arbitrary(s) => {
+                self.separated_text = self.text.split(s)
+                    .map(|x| x.to_string()).collect();
+                Ok(())
+            }
+            Separator::None => {
+                Ok(())
+            }
+        }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -133,6 +181,8 @@ fn get_quote(text: &str) -> Result<(String, Quote)> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::shell::Shell;
+
 
     #[test]
     fn create_word_1() {
@@ -143,6 +193,7 @@ mod test {
             expansion: Expansion::None,
             separator: Separator::Whitespace,
             selection: Selection::All,
+            separated_text: Vec::<String>::new(),
         };
 
         assert_eq!(word, Word::new(cmd).unwrap());
@@ -157,6 +208,7 @@ mod test {
             expansion: Expansion::Variable,
             separator: Separator::Whitespace,
             selection: Selection::All,
+            separated_text: Vec::<String>::new(),
         };
 
         assert_eq!(word, Word::new(cmd).unwrap());
@@ -171,6 +223,7 @@ mod test {
             expansion: Expansion::Subshell,
             separator: Separator::Whitespace,
             selection: Selection::All,
+            separated_text: Vec::<String>::new(),
         };
 
         assert_eq!(word, Word::new(cmd).unwrap());
@@ -185,6 +238,7 @@ mod test {
             expansion: Expansion::Subshell,
             separator: Separator::Whitespace,
             selection: Selection::All,
+            separated_text: Vec::<String>::new(),
         };
 
         assert_eq!(word, Word::new(cmd).unwrap());
@@ -199,6 +253,7 @@ mod test {
             expansion: Expansion::Subshell,
             separator: Separator::Whitespace,
             selection: Selection::Index(1),
+            separated_text: Vec::<String>::new(),
         };
 
         assert_eq!(word, Word::new(cmd).unwrap());
@@ -213,8 +268,36 @@ mod test {
             expansion: Expansion::Subshell,
             separator: Separator::Whitespace,
             selection: Selection::Slice(1, 0),
+            separated_text: Vec::<String>::new(),
         };
 
         assert_eq!(word, Word::new(cmd).unwrap());
+    }
+
+    #[test]
+    fn expand_1() {
+        // Replace 'cmd' with 'cat' 
+        
+        let mut smsh = Shell::new();
+        smsh.insert_user_variable("cmd".to_string(), "cat".to_string());
+
+        let mut word = Word::new("{cmd}".to_string()).unwrap();
+
+        word.expand(&mut smsh).unwrap();
+
+        assert_eq!(word.text, "cat".to_string())
+    }
+
+    #[test]
+    fn separate_1() {
+        let mut smsh = Shell::new();
+
+        let cmd = "cat".to_string();
+        let mut word = Word::new(cmd).unwrap();
+
+        word.expand(&mut smsh).unwrap();
+        word.separate().unwrap();
+
+        assert_eq!(word.separated_text, vec!["cat".to_string()])
     }
 }
