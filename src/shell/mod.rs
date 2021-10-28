@@ -57,6 +57,8 @@ impl Shell {
             while let Some(line) = self.get_line()? {
                 if *line.source() == source && line.indentation() == indent {
                     lines.push(line);
+                } else if line.is_empty() {
+                    continue;
                 } else {
                     self.push_source(BufferSource::build_source(vec![line]));
                     break;
