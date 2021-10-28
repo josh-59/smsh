@@ -4,8 +4,8 @@ use nix::unistd::{self, fork, ForkResult};
 use std::ffi::CString;
 use std::fmt;
 
-use super::shell::Shell;
-use super::sources::SourceKind;
+use crate::shell::Shell;
+use crate::sources::SourceKind;
 
 mod word;
 use word::Word;
@@ -14,12 +14,12 @@ use word::Word;
 // A logical line can transcend physical lines by
 // quoting, by backslash escaping a newline, and by
 // terminating a line with a pipe operator.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Line {
     rawline: String,
-    line_num: usize,
-    source: SourceKind,
     indentation: usize,
+    source: SourceKind,
+    line_num: usize,
 }
 
 impl Line {
@@ -37,9 +37,9 @@ impl Line {
 
         Line {
             rawline,
-            line_num,
-            source,
             indentation: leading_spaces / 4,
+            source,
+            line_num,
         }
     }
 
@@ -91,17 +91,18 @@ impl Line {
 
     pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
 
-        let substrings = self.get_words()?;
         let mut words = Vec::<String>::new();
 
-        for s in substrings {
+        for s in self.get_words()? {
             let mut word = Word::new(s)?;
             word.expand(smsh)?;
             word.separate()?;
             word.select()?;
 
-            if !word.is_empty() {
-                words.push(word.text().to_string());
+            for word in word.separated_text {
+                if !word.is_empty() {
+                    words.push(word);
+                }
             }
         }
 
@@ -255,5 +256,47 @@ impl fmt::Display for Line {
                 )
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::sources::SourceKind;
+
+    #[test]
+    fn new_line_test_1 () {
+        let line = Line {
+            rawline: "cmd".to_string(),
+            indentation: 0,
+            source: SourceKind::Subshell,
+            line_num: 0,
+        };
+
+        assert_eq!(line, Line::new("cmd".to_string(), 0, SourceKind::Subshell));
+    }
+
+    #[test]
+    fn new_line_test_2() {
+        let line = Line {
+            rawline: "cmd".to_string(),
+            indentation: 1,
+            source: SourceKind::Subshell,
+            line_num: 0,
+        };
+
+        assert_eq!(line, Line::new("    cmd".to_string(), 0, SourceKind::Subshell));
+    }
+
+    #[test]
+    fn new_line_test_3() {
+        let line = Line {
+            rawline: "cmd".to_string(),
+            indentation: 0,
+            source: SourceKind::Subshell,
+            line_num: 0,
+        };
+
+        assert_eq!(line, Line::new("  cmd".to_string(), 0, SourceKind::Subshell));
     }
 }

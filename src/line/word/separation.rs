@@ -88,4 +88,34 @@ mod test {
             get_separator(text)
         );
     }
+
+    #[test]
+    fn get_separator_test_3() {
+        let text = "{var}S=\" \"";
+
+        assert_eq!(
+            ("{var}".to_string(), Separator::Arbitrary(" ".to_string())), 
+            get_separator(text)
+        );
+    }
+
+    #[test]
+    fn get_separator_test_4() {
+        let text = "{var}S=\"\t\"";
+
+        assert_eq!(
+            ("{var}".to_string(), Separator::Arbitrary("\t".to_string())), 
+            get_separator(text)
+        );
+    }
+
+    #[test]
+    fn get_separator_test_5() {
+        let text = "{var}S=\"beep_boop_arbitrary_separator\"";
+
+        assert_eq!(
+            ("{var}".to_string(), Separator::Arbitrary("beep_boop_arbitrary_separator".to_string())), 
+            get_separator(text)
+        );
+    }
 }
