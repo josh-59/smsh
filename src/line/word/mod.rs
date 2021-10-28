@@ -56,7 +56,14 @@ impl Word {
 
         let (text, quote) = get_quote(&text)?;
 
-        let (text, selection) = get_selection(&text)?;
+        let (text, selection) = match quote {
+            Quote::Unquoted => {
+                get_selection(&text)?
+            }
+            Quote::SingleQuoted | Quote::DoubleQuoted => {
+                (text, Selection::All)
+            }
+        };
 
         let (text, separator) = match quote {
             Quote::SingleQuoted | Quote::DoubleQuoted => {
@@ -102,47 +109,43 @@ impl Word {
 
     // Reduces self.separated_text to selection desired
     pub fn select(&mut self) -> Result<()> {
-        match &self.selection {
-            Selection::All => {
-                Ok(())
-            }
-            Selection::Index(n) => {
-                if *n < self.separated_text.len() {
-                    let word = self.separated_text[*n].clone();
-                    self.separated_text.clear();
-                    self.separated_text.push(word);
-                } else {
-                    self.separated_text.clear();
-                }
-
-                Ok(())
-            }
-            Selection::Slice(n, m) => {
-                if self.separated_text.len() == 0 {
-                    Ok(())
-                } else if *n < self.separated_text.len() {
-                    let mut words = Vec::<String>::new();
-
-                    if *m > *n {
-                        let min = min(self.separated_text.len() - 1, *m);
-
-                        for w in &self.separated_text[*n..min] {
-                            words.push(w.to_string())
-                        }
-                    } else if *m == 0 {
-                        for w in &self.separated_text[*n..] {
-                            words.push(w.to_string())
-                        }
+        if self.quote == Quote::Unquoted {
+            match &self.selection {
+                Selection::Index(n) => {
+                    if *n < self.separated_text.len() {
+                        let word = self.separated_text[*n].clone();
+                        self.separated_text.clear();
+                        self.separated_text.push(word);
+                    } else {
+                        self.separated_text.clear();
                     }
-
-                    self.separated_text = words;
-
-                    Ok(())
-                } else {
-                    Ok(())
+                }
+                Selection::Slice(n, m) => {
+                    if self.separated_text.len() > 0 && *n < self.separated_text.len() {
+                        let mut words = Vec::<String>::new();
+    
+                        if *m > *n {
+                            let min = min(self.separated_text.len() - 1, *m);
+    
+                            for w in &self.separated_text[*n..min] {
+                                words.push(w.to_string())
+                            }
+                        } else if *m == 0 {
+                            for w in &self.separated_text[*n..] {
+                                words.push(w.to_string())
+                            }
+                        }
+    
+                        self.separated_text = words;
+    
+                    } 
+                }
+                _ => {
                 }
             }
         }
+
+        Ok(())
     }
 
     // Separates self.text by separator desired and pushes each
@@ -312,6 +315,23 @@ mod test {
 
         assert_eq!(word, Word::new(cmd).unwrap());
     }
+
+    #[test]
+    fn create_word_7() {
+        let cmd = "'!{{cmd}}[1..]'".to_string();
+
+        let word = Word {
+            text: "!{{cmd}}[1..]".to_string(),
+            quote: Quote::SingleQuoted,
+            expansion: Expansion::None,
+            separator: Separator::None,
+            selection: Selection::All,
+            separated_text: Vec::<String>::new(),
+        };
+
+        assert_eq!(word, Word::new(cmd).unwrap());
+    }
+
 
     #[test]
     fn expand_1() {
