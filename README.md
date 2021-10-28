@@ -14,3 +14,7 @@ What Rust is to systems programming, `smsh` is intended to be to shells.
 Help wanted! 
 Anyone is welcome to contribute to the project.
 Ideas and suggestions are welcome as well.
+
+## To Do
+- Negative selection index support
+- Selection support on quote-delimited strings
