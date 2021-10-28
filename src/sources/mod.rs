@@ -6,7 +6,7 @@ pub mod script;
 pub mod tty;
 pub mod user_function;
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum SourceKind {
     Tty,
     Subshell,
