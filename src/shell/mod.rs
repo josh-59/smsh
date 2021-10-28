@@ -1,5 +1,5 @@
 use crate::line::Line;
-use crate::sources::{tty::Tty, user_function::UserFunction, BufferSource, Source};
+use crate::sources::{user_function::UserFunction, BufferSource, Source};
 use anyhow::Result;
 
 use std::collections::HashMap;
@@ -99,11 +99,6 @@ impl Shell {
         } else {
             None
         }
-    }
-
-    pub fn reset_interactive(&mut self) {
-        self.sources.clear();
-        self.sources.push(Tty::build_source());
     }
 
     pub fn state(&self) -> &State {

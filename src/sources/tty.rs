@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use nix::unistd::getuid;
 use std::io::{self, Stdin, Write};
 
@@ -27,7 +27,7 @@ impl Tty {
         let num_bytes_read = self.stdin.read_line(&mut buffer)?;
 
         if num_bytes_read == 0 {
-            Err(anyhow!("Unexpected EOF")) // EOF was found
+            Ok(None)
         } else {
             Ok(Some(buffer))
         }
@@ -61,8 +61,14 @@ impl Source for Tty {
             let mut line = Line::new(buffer, self.line_num, SourceKind::Tty);
 
             while !line.is_complete() {
-                if let Some(line_addendum) = self.get_secondary_line()? {
-                    line.append(line_addendum);
+                match self.get_secondary_line()? {
+                    Some(line_addendum) => {
+                        line.append(line_addendum);
+                    }
+                    None => {
+                        eprintln!("smsh: Unexpected EOF");
+                        return Ok(Some(Line::new("".to_string(), self.line_num, SourceKind::Tty)));
+                    }
                 }
             }
 
