@@ -23,7 +23,6 @@ pub enum Expansion {
     Variable,
     Environment,
     Subshell,
-    Unknown,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -44,6 +43,7 @@ pub enum Selection {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Word {
     text: String,
+    quote: Quote,
     expansion: Expansion,
     separator: Separator,
     selection: Selection,
@@ -54,9 +54,9 @@ pub struct Word {
 impl Word {
     pub fn new(text: String) -> Result<Word> {
 
-        let (text, selection) = get_selection(&text)?;
-
         let (text, quote) = get_quote(&text)?;
+
+        let (text, selection) = get_selection(&text)?;
 
         let (text, separator) = match quote {
             Quote::SingleQuoted | Quote::DoubleQuoted => {
@@ -78,6 +78,7 @@ impl Word {
 
         let word = Word {
             text,
+            quote,
             expansion,
             separator,
             selection,
@@ -87,10 +88,19 @@ impl Word {
         Ok(word)
     }
 
+    // Replaces self.text with expanded value
     pub fn expand(&mut self, smsh: &mut Shell) -> Result<()> {
-        expand(self, smsh)
+        match &self.quote {
+            Quote::Unquoted | Quote::DoubleQuoted => {
+                expand(self, smsh)
+            }
+            Quote::SingleQuoted => {
+                Ok(())
+            }
+        }
     }
 
+    // Reduces self.separated_text to selection desired
     pub fn select(&mut self) -> Result<()> {
         match &self.selection {
             Selection::All => {
@@ -135,6 +145,8 @@ impl Word {
         }
     }
 
+    // Separates self.text by separator desired and pushes each
+    // substring onto self.separated_text
     pub fn separate(&mut self) -> Result<()> {
         match &self.separator {
             Separator::Whitespace => {
@@ -161,6 +173,7 @@ impl Word {
                 Ok(())
             }
             Separator::None => {
+                self.separated_text.push(self.text.to_string());
                 Ok(())
             }
         }
@@ -169,6 +182,7 @@ impl Word {
 
 
 fn get_quote(text: &str) -> Result<(String, Quote)> {
+
     let leading_quote = match text.chars().next() {
         Some('\'') => Quote::SingleQuoted,
         Some('\"') => Quote::DoubleQuoted,
@@ -181,17 +195,19 @@ fn get_quote(text: &str) -> Result<(String, Quote)> {
         _ => Quote::Unquoted,
     };
 
-    if leading_quote == trailing_quote {
-        match leading_quote {
-            Quote::SingleQuoted | Quote::DoubleQuoted => {
+    match leading_quote {
+        Quote::SingleQuoted | Quote::DoubleQuoted => {
+            if leading_quote == trailing_quote {
                 let mut s = text[1..].to_string();
                 s.pop();
                 Ok((s, leading_quote))
+            } else {
+                Err(anyhow!("Unmatched quote"))
             }
-            Quote::Unquoted => Ok((text.to_string(), leading_quote)),
         }
-    } else {
-        Err(anyhow!("Unmatched quote"))
+        Quote::Unquoted => {
+            Ok((text.to_string(), leading_quote))
+        }
     }
 }
 
@@ -207,6 +223,7 @@ mod test {
 
         let word = Word {
             text: "cat".to_string(),
+            quote: Quote::Unquoted,
             expansion: Expansion::None,
             separator: Separator::Whitespace,
             selection: Selection::All,
@@ -222,6 +239,7 @@ mod test {
 
         let word = Word {
             text: "cmd".to_string(),
+            quote: Quote::Unquoted,
             expansion: Expansion::Variable,
             separator: Separator::Whitespace,
             selection: Selection::All,
@@ -237,6 +255,7 @@ mod test {
 
         let word = Word {
             text: "cmd".to_string(),
+            quote: Quote::Unquoted,
             expansion: Expansion::Subshell,
             separator: Separator::Whitespace,
             selection: Selection::All,
@@ -252,6 +271,7 @@ mod test {
 
         let word = Word {
             text: "{cmd}".to_string(),
+            quote: Quote::Unquoted,
             expansion: Expansion::Subshell,
             separator: Separator::Whitespace,
             selection: Selection::All,
@@ -267,6 +287,7 @@ mod test {
 
         let word = Word {
             text: "{cmd}".to_string(),
+            quote: Quote::Unquoted,
             expansion: Expansion::Subshell,
             separator: Separator::Whitespace,
             selection: Selection::Index(1),
@@ -282,6 +303,7 @@ mod test {
 
         let word = Word {
             text: "{cmd}".to_string(),
+            quote: Quote::Unquoted,
             expansion: Expansion::Subshell,
             separator: Separator::Whitespace,
             selection: Selection::Slice(1, 0),

@@ -38,7 +38,9 @@ pub fn expand(word: &mut Word, smsh: &mut Shell) -> Result<()> {
 
             Ok(())
         }
-        _ => Ok(()),
+        Expansion::None => {
+            Ok(())
+        }
     }
 }
 
@@ -57,10 +59,6 @@ pub fn get_expansion(text: &str) -> (String, Expansion) {
         let mut s = text[2..].to_string();
         s.pop();
         (s, Expansion::Environment)
-    } else if text[0..2].contains('{') {
-        let mut s = text[2..].to_string();
-        s.pop();
-        (s, Expansion::Unknown)
     } else {
         (text.to_string(), Expansion::None)
     }
