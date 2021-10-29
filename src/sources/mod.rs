@@ -16,11 +16,12 @@ pub enum SourceKind {
 
 pub trait Source {
     fn get_line(&mut self, prompt: Option<String>) -> Result<Option<Line>>;
-    fn is_tty(&self) -> bool; // TODO: Remove &self
+    fn is_tty(&self) -> bool; 
+    fn is_faux_source(&self) -> bool;
+    fn print_error(&mut self) -> Result<()>;
 }
 
-// TODO: This should be a vec of lines, and should include sourcekind...
-// Buffer is not a valid sourcekind; should be 'subshell'
+// Used to push lines back onto the execution stack
 pub struct BufferSource {
     lines: Vec<Line>,
     line_num: usize,
@@ -49,4 +50,31 @@ impl Source for BufferSource {
             *self.lines[0].source() == SourceKind::Tty
         }
     }
+
+    fn is_faux_source(&self) -> bool {
+        if !self.lines.is_empty() {
+            match self.lines[0].source() {
+                SourceKind::Tty | 
+                SourceKind::Subshell |
+                SourceKind::UserFunction(_) |
+                SourceKind::Script(_) => {
+                    false
+                }
+                _ => {
+                    true
+                }
+            }
+        } else {
+            true
+        }
+    }
+
+    fn print_error(&mut self) -> Result<()> {
+        if self.line_num > 0 {
+            eprintln!("{}", self.lines[self.line_num - 1]);
+        }
+
+        Ok(())
+    }
 }
+

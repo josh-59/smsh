@@ -8,13 +8,14 @@ use crate::line::Line;
 pub struct Tty {
     stdin: Stdin,
     line_num: usize,
+    last_line: Option<Line>
 }
 
 impl Tty {
     pub fn build_source() -> Box<dyn Source> {
         let stdin = io::stdin();
 
-        Box::new(Tty { stdin, line_num: 0 })
+        Box::new(Tty { stdin, line_num: 0, last_line: None})
     }
 
     // Used to complete logical lines when they transcend physical lines
@@ -72,11 +73,25 @@ impl Source for Tty {
                 }
             }
 
+            self.last_line = Some(line.clone());
+
             Ok(Some(line))
         }
     }
 
     fn is_tty(&self) -> bool {
         true
+    }
+
+    fn is_faux_source(&self) -> bool {
+        false
+    }
+
+    fn print_error(&mut self) -> Result<()> {
+        if let Some(line) = &self.last_line {
+            eprintln!("{}", line);
+        }
+
+        Ok(())
     }
 }

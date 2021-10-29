@@ -104,4 +104,17 @@ impl Shell {
     pub fn state(&self) -> &State {
         &self.state
     }
+
+    pub fn backtrace(&mut self) -> Result<()> {
+        while let Some(mut source) = self.sources.pop() {
+            if !source.is_faux_source() {
+                source.print_error()?;
+            }
+            if source.is_tty() {
+                self.sources.push(source);
+                break;
+            }
+        }
+        Ok(())
+    }
 }

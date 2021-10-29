@@ -9,5 +9,7 @@ fn main() {
 
     while let Err(e) = smsh.run() {
         eprintln!("smsh: {}", e);
+
+        smsh.backtrace();
     }
 }

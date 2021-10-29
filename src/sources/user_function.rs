@@ -46,4 +46,16 @@ impl Source for UserFunction {
     fn is_tty(&self) -> bool {
         false
     }
+
+    fn is_faux_source(&self) -> bool {
+        false
+    }
+
+    fn print_error(&mut self) -> Result<()> {
+        eprintln!("{}", 
+                    Line::new(self.fn_body[self.line_num - 1].clone(),
+                    self.line_num,
+                    SourceKind::UserFunction(self.fn_name.clone())));
+        Ok(())
+    }
 }

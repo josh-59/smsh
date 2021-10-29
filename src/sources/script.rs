@@ -11,6 +11,7 @@ pub struct Script {
     path: PathBuf,
     body: Vec<String>,
     line_num: usize,
+    last_line: Option<Line>,
 }
 
 impl Script {
@@ -24,6 +25,7 @@ impl Script {
             path,
             body,
             line_num: 0,
+            last_line: None
         };
 
         Ok(Box::new(script))
@@ -45,11 +47,25 @@ impl Source for Script {
 
             let line = Line::new(text, self.line_num, SourceKind::Script(self.file_name()));
 
+            self.last_line = Some(line.clone());
+
             Ok(Some(line))
         }
     }
 
     fn is_tty(&self) -> bool {
         false
+    }
+
+    fn is_faux_source(&self) -> bool {
+        false
+    }
+
+    fn print_error(&mut self) -> Result<()> {
+        if let Some(line) = &self.last_line {
+            eprintln!("{}", line);
+        }
+
+        Ok(())
     }
 }
