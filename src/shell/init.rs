@@ -1,7 +1,7 @@
 use xdg::BaseDirectories;
 
-use super::modules::Module;
-use super::{load_module, Builtin, Shell};
+use super::modules::{Module, Builtin, load_module};
+use super::Shell;
 use super::state::State;
 use crate::sources::{
     Sources,

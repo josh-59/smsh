@@ -1,5 +1,5 @@
 use crate::line::Line;
-use crate::sources::{Sources, user_function::UserFunction, InputSource};
+use crate::sources::{Sources, user_function::UserFunction, Source};
 use anyhow::Result;
 use nix::unistd;
 
@@ -10,7 +10,7 @@ use std::process::exit;
 mod state;
 use state::State;
 mod modules;
-use modules::*;
+use modules::Builtin;
 mod init;
 use init::init;
 
@@ -44,7 +44,7 @@ impl Shell {
         self.sources.get_block()
     }
 
-    pub fn push_source(&mut self, source: Box<dyn InputSource>) {
+    pub fn push_source(&mut self, source: Box<dyn Source>) {
         self.sources.push_source(source)
     }
 

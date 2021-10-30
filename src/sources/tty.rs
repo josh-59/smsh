@@ -2,7 +2,7 @@ use anyhow::Result;
 use nix::unistd::getuid;
 use std::io::{self, Stdin, Write};
 
-use super::{InputSource, SourceKind};
+use super::{Source, SourceKind};
 use crate::line::Line;
 
 pub struct Tty {
@@ -12,7 +12,7 @@ pub struct Tty {
 }
 
 impl Tty {
-    pub fn build_source() -> Box<dyn InputSource> {
+    pub fn build_source() -> Box<dyn Source> {
         let stdin = io::stdin();
 
         Box::new(Tty { stdin, line_num: 0, last_line: None})
@@ -35,7 +35,7 @@ impl Tty {
     }
 }
 
-impl InputSource for Tty {
+impl Source for Tty {
 
     fn get_line(&mut self, prompt: Option<String>) -> Result<Option<Line>> {
         let prompt = if let Some(p) = prompt {

@@ -27,7 +27,7 @@ pub enum SourceKind {
     Script(String),       // String contains script pathname
 }
 
-pub trait InputSource {
+pub trait Source {
     fn get_line(&mut self, prompt: Option<String>) -> Result<Option<Line>>;
     fn is_tty(&self) -> bool; 
     fn is_faux_source(&self) -> bool;
@@ -35,7 +35,7 @@ pub trait InputSource {
 }
 
 pub struct Sources {
-    sources: Vec<Box<dyn InputSource>>,
+    sources: Vec<Box<dyn Source>>,
     buffer: Vec<Line>,
 }
 
@@ -84,7 +84,7 @@ impl Sources {
         Ok(lines)
     }
 
-    pub fn push_source(&mut self, source: Box<dyn InputSource>) {
+    pub fn push_source(&mut self, source: Box<dyn Source>) {
         self.sources.push(source)
     }
 

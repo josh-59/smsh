@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 use crate::line::Line;
-use super::InputSource;
+use super::Source;
 
 // Used to push lines back onto the execution stack
 pub struct SubshellSource {
@@ -10,12 +10,12 @@ pub struct SubshellSource {
 }
 
 impl SubshellSource {
-    pub fn build_source(lines: Vec<Line>) -> Box<dyn InputSource> {
+    pub fn build_source(lines: Vec<Line>) -> Box<dyn Source> {
         Box::new(SubshellSource{ lines, line_num: 0 })
     }
 }
 
-impl InputSource for SubshellSource {
+impl Source for SubshellSource {
     fn get_line(&mut self, _prompt: Option<String>) -> Result<Option<Line>> {
         if self.line_num == self.lines.len() {
             Ok(None)
