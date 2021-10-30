@@ -1,0 +1,7 @@
+Ideas for error handling:
+
+$ celar
+  ^^^^^ Command not found
+
+$ sl -F --color=auto
+  ^^ Command not found
