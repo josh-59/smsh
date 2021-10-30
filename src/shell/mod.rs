@@ -1,8 +1,11 @@
 use crate::line::Line;
 use crate::sources::{user_function::UserFunction, BufferSource, Source};
 use anyhow::Result;
+use nix::unistd;
 
 use std::collections::HashMap;
+use std::ffi::CString;
+use std::process::exit;
 
 mod state;
 use state::State;
@@ -105,16 +108,43 @@ impl Shell {
         &self.state
     }
 
-    pub fn backtrace(&mut self) -> Result<()> {
+    pub fn backtrace(&mut self) {
         while let Some(mut source) = self.sources.pop() {
             if !source.is_faux_source() {
-                source.print_error()?;
+                let _ = source.print_error();
             }
+
             if source.is_tty() {
                 self.sources.push(source);
                 break;
             }
         }
-        Ok(())
+    }
+
+    pub fn execute_external_command(&mut self, args: Vec<String>) -> ! {
+        if args.len() == 0 {
+            exit(0);
+        }
+
+        let mut argv = vec![];
+        for arg in args {
+            let arg = match CString::new(arg) {
+                Ok(x) => {
+                    x
+                }
+                Err(e) => {
+                    eprintln!("smsh (child): {}", e);
+                    exit(1);
+                }
+            };
+
+            argv.push(arg);
+        }
+
+        let _ = unistd::execvp(&argv[0], &argv);
+        exit(1);
+
     }
 }
+
+
