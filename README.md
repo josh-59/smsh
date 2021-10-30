@@ -24,3 +24,4 @@ Ideas and suggestions are welcome as well.
 - use Reedline readline library
 - Negative selection index support
 - Selection support on quote-delimited strings (string literals)
+- Implement 'Condition' struct
