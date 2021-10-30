@@ -1,7 +1,8 @@
 use crate::line::Line;
 use crate::sources::{Sources, user_function::UserFunction, Source};
-use anyhow::Result;
-use nix::unistd;
+use anyhow::{anyhow, Result};
+use nix::unistd::{self, fork, ForkResult};
+use nix::sys::wait::{wait, WaitStatus};
 
 use std::collections::HashMap;
 use std::ffi::CString;
@@ -88,29 +89,46 @@ impl Shell {
         &self.state
     }
 
-    pub fn execute_external_command(&mut self, args: Vec<&str>) -> ! {
-        if args.len() == 0 {
-            exit(0);
-        }
-
-        let mut argv = vec![];
-        for arg in args {
-            let arg = match CString::new(arg) {
-                Ok(x) => {
-                    x
+    pub fn execute_external_command(&mut self, args: Vec<&str>) -> Result<()> {
+        match unsafe { fork()? } {
+            ForkResult::Parent { child: _, .. } => {
+                match wait()? {
+                    WaitStatus::Exited(_pid, exit_status) => {
+                        if exit_status > 0 {
+                            Err(anyhow!("Unable to execute external command `{}`", args[0]))
+                        } else {
+                            Ok(())
+                        }
+                    }
+                    _ => {
+                        Ok(())
+                    }
                 }
-                Err(e) => {
-                    eprintln!("smsh (child): {}", e);
-                    exit(1);
+            }
+            ForkResult::Child => {
+                if args.len() == 0 {
+                    exit(0);
                 }
-            };
 
-            argv.push(arg);
+                let mut argv = vec![];
+                for arg in args {
+                    let arg = match CString::new(arg) {
+                        Ok(x) => {
+                            x
+                        }
+                        Err(e) => {
+                            eprintln!("smsh (child): {}", e);
+                            exit(1);
+                        }
+                    };
+
+                    argv.push(arg);
+                }
+
+                let _ = unistd::execvp(&argv[0], &argv);
+                exit(1);
+            }
         }
-
-        let _ = unistd::execvp(&argv[0], &argv);
-        exit(1);
-
     }
 }
 

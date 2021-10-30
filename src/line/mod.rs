@@ -1,7 +1,4 @@
 use anyhow::{anyhow, Result};
-use nix::sys::wait::wait;
-use nix::unistd::{fork, ForkResult};
-use nix::sys::wait::WaitStatus;
 use std::fmt;
 
 use crate::shell::Shell;
@@ -137,10 +134,8 @@ impl Line {
     }
 
     pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
-
         match self.line_kind {
             LineKind::Normal => {
-
                 let strs: Vec<&str> = self.words.iter()
                     .filter_map(|x| {
                         if x.is_empty() {
@@ -163,25 +158,8 @@ impl Line {
                     f(smsh, strs)?;
                     Ok(())
                 } else {
-                    match unsafe { fork()? } {
-                        ForkResult::Parent { child: _, .. } => {
-                            match wait()? {
-                                WaitStatus::Exited(_pid, exit_status) => {
-                                    if exit_status > 0 {
-                                        Err(anyhow!("Unable to execute external command `{}`", strs[0]))
-                                    } else {
-                                        Ok(())
-                                    }
-                                }
-                                _ => {
-                                    Ok(())
-                                }
-                            }
-                        }
-                        ForkResult::Child => {
-                            smsh.execute_external_command(strs);
-                        }
-                    }
+                    smsh.execute_external_command(strs)?;
+                    Ok(())
                 }
             }
             _ => {
