@@ -1,7 +1,7 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use nix::sys::wait::wait;
-use nix::unistd::{self, fork, ForkResult};
-use std::ffi::CString;
+use nix::unistd::{fork, ForkResult};
+use nix::sys::wait::WaitStatus;
 use std::fmt;
 
 use crate::shell::Shell;
@@ -46,7 +46,11 @@ impl Line {
             }
         }
 
-        let rawline = rawline[leading_whitespace..].to_string();
+        let mut rawline = rawline[leading_whitespace..].to_string();
+
+        while rawline.ends_with('\n') {
+            rawline.pop();
+        }
 
         Line {
             rawline,
@@ -138,22 +142,21 @@ impl Line {
         } else {
             match unsafe { fork()? } {
                 ForkResult::Parent { child: _, .. } => {
-                    wait()?;
-                    Ok(())
+                    match wait()? {
+                        WaitStatus::Exited(_pid, exit_status) => {
+                            if exit_status > 0 {
+                                Err(anyhow!("Unable to execute external command `{}`", &words[0]))
+                            } else {
+                                Ok(())
+                            }
+                        }
+                        _ => {
+                            Ok(())
+                        }
+                    }
                 }
                 ForkResult::Child => {
-                    smsh.clear_sources();
-
-                    let command = CString::new(strs[0])?;
-                    let mut args = vec![];
-                    for word in strs {
-                        args.push(CString::new(word)?);
-                    }
-                    unistd::execvp(&command, &args).context(format!(
-                        "Unable to execute external command `{}`",
-                        &words[0]
-                    ))?;
-                    Ok(())
+                    smsh.execute_external_command(words);
                 }
             }
         }
@@ -244,26 +247,26 @@ impl fmt::Display for Line {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.source {
             SourceKind::Tty => {
-                write!(f, "TTY line {}:\n{}", self.line_num, self.rawline)
+                write!(f, "\tTTY line {}: {}", self.line_num, self.rawline)
             }
             SourceKind::Subshell => {
                 write!(
                     f,
-                    "Subshell Expansion line {}:\n{}",
+                    "\tSubshell Expansion line {}: {}",
                     self.line_num, self.rawline
                 )
             }
             SourceKind::UserFunction(s) => {
                 write!(
                     f,
-                    "Function `{}` line number {}:\n{}",
+                    "\tFunction `{}` line {}: {}",
                     s, self.line_num, self.rawline
                 )
             }
             SourceKind::Script(s) => {
                 write!(
                     f,
-                    "Script `{}` line number {}:\n{}",
+                    "\tScript `{}` line {}: {}",
                     s, self.line_num, self.rawline
                 )
             }
