@@ -1,6 +1,6 @@
 # smsh
 
-Status: Not yet useable 
+Status: Under Initial Development
 
 `smsh` is a shell for the next generation.
 It is intended to be full-featured, reasonably fast, and most of all, easy to learn.
