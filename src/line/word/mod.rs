@@ -107,6 +107,14 @@ impl Word {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.text.is_empty()
+    }
+
+    pub fn text(&self) -> &str {
+        &self.text
+    }
+
     // Reduces self.separated_text to selection desired
     pub fn select(&mut self) -> Result<()> {
         if self.quote == Quote::Unquoted {

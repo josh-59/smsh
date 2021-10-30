@@ -31,6 +31,7 @@ pub struct Line {
     source: SourceKind,
     line_num: usize,
     line_kind: LineKind,
+    words: Vec<Word>
 }
 
 impl Line {
@@ -49,6 +50,7 @@ impl Line {
             source,
             line_num,
             line_kind,
+            words: vec![],
         }
     }
 
@@ -70,6 +72,38 @@ impl Line {
 
     pub fn is_empty(&self) -> bool {
         self.rawline.is_empty()
+    }
+
+    pub fn get_words(&mut self) -> Result<()> {
+        for word in get_words(self.rawline.as_str())? {
+            self.words.push(Word::new(word)?);
+        }
+
+        Ok(())
+    }
+
+    pub fn expand(&mut self, smsh: &mut Shell) -> Result<()> {
+        for word in &mut self.words {
+            word.expand(smsh)?;
+        }
+
+        Ok(())
+    }
+
+    pub fn separate(&mut self) -> Result<()> {
+        for word in &mut self.words {
+            word.separate()?;
+        }
+
+        Ok(())
+    }
+
+    pub fn select(&mut self) -> Result<()> {
+        for word in &mut self.words {
+            word.select()?;
+        }
+
+        Ok(())
     }
 
     // True if line is a complete logical line
@@ -104,133 +138,55 @@ impl Line {
 
     pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
 
-        let mut words = Vec::<String>::new();
+        match self.line_kind {
+            LineKind::Normal => {
 
+                let strs: Vec<&str> = self.words.iter()
+                    .filter_map(|x| {
+                        if x.is_empty() {
+                            None
+                        }
+                        else {
+                            Some(x.text())
+                        }
+                    })
+                    .collect();
 
-        for s in self.get_words()? {
-            let mut word = Word::new(s)?;
-            word.expand(smsh)?;
-            word.separate()?;
-            word.select()?;
-
-            for word in word.separated_text {
-                if !word.is_empty() {
-                    words.push(word);
+                if strs.is_empty() {
+                    return Ok(());
                 }
-            }
-        }
 
-        let strs: Vec<&str> = words.iter().map(|x| x.as_str()).collect();
-
-        if words.is_empty() {
-            return Ok(());
-        }
-
-        if let Some(f) = smsh.get_user_function(strs[0]) {
-            smsh.push_source(f.build_source());
-            Ok(())
-        } else if let Some(f) = smsh.get_builtin(&words[0]) {
-            f(smsh, strs)
-        } else {
-            match unsafe { fork()? } {
-                ForkResult::Parent { child: _, .. } => {
-                    match wait()? {
-                        WaitStatus::Exited(_pid, exit_status) => {
-                            if exit_status > 0 {
-                                Err(anyhow!("Unable to execute external command `{}`", &words[0]))
-                            } else {
-                                Ok(())
+                if let Some(f) = smsh.get_user_function(strs[0]) {
+                    smsh.push_source(f.build_source());
+                    Ok(())
+                } else if let Some(f) = smsh.get_builtin(strs[0]) {
+                    f(smsh, strs)?;
+                    Ok(())
+                } else {
+                    match unsafe { fork()? } {
+                        ForkResult::Parent { child: _, .. } => {
+                            match wait()? {
+                                WaitStatus::Exited(_pid, exit_status) => {
+                                    if exit_status > 0 {
+                                        Err(anyhow!("Unable to execute external command `{}`", strs[0]))
+                                    } else {
+                                        Ok(())
+                                    }
+                                }
+                                _ => {
+                                    Ok(())
+                                }
                             }
                         }
-                        _ => {
-                            Ok(())
+                        ForkResult::Child => {
+                            smsh.execute_external_command(strs);
                         }
                     }
                 }
-                ForkResult::Child => {
-                    smsh.execute_external_command(words);
-                }
             }
-        }
-    }
-
-    // Breaks line into words according to quoting rules.
-    // Quotes and braces are preserved, whitespace is removed
-    fn get_words(&self) -> Result<Vec<String>> {
-        #[derive(PartialEq, Eq)]
-        enum State {
-            SingleQuoted,
-            DoubleQuoted,
-            Unquoted,
-            Expansion(usize),
-        }
-
-        let mut words = Vec::<String>::new();
-        let mut word = String::new();
-
-        let mut state = State::Unquoted;
-
-        for ch in self.rawline.chars() {
-            match state {
-                State::Unquoted => match ch {
-                    ' ' | '\n' | '\t' => {
-                            if !word.is_empty() {
-                            words.push(word);
-                            word = String::new();
-                        }
-                    }
-                    '\'' => {
-                        word.push(ch);
-                        state = State::SingleQuoted;
-                    }
-                    '\"' => {
-                        word.push(ch);
-                        state = State::DoubleQuoted;
-                    }
-                    '{' => {
-                        word.push(ch);
-                        state = State::Expansion(1);
-                    }
-                    _ => {
-                        word.push(ch);
-                    }
-                },
-                State::SingleQuoted => {
-                    word.push(ch);
-                    if ch == '\'' {
-                        state = State::Unquoted;
-                    } 
-                }
-                State::DoubleQuoted => {
-                    word.push(ch);
-                    if ch == '\"' {
-                        state = State::Unquoted;
-                    } 
-                }
-                State::Expansion(n) => {
-                    word.push(ch);
-                    if ch == '{' {
-                        state = State::Expansion(n + 1);
-                    } else if ch == '}' {
-                        state = State::Expansion(n - 1);
-                    }
-    
-                    if state == State::Expansion(0) {
-                        state = State::Unquoted
-                    }
-                }
+            _ => {
+                return Ok(())
             }
-        }
-    
-        if !word.is_empty() {
-            words.push(word);
-        }
-
-        match state {
-            State::SingleQuoted => Err(anyhow!("Unmatched single quote.")),
-            State::DoubleQuoted => Err(anyhow!("Unmatched double quote.")),
-            State::Expansion(_) => Err(anyhow!("Unmatched brace.")),
-            State::Unquoted => Ok(words),
         }
     }
 }
@@ -265,6 +221,87 @@ impl fmt::Display for Line {
         }
     }
 }
+
+// Breaks line into words according to quoting rules.
+// Quotes and braces are preserved, whitespace is removed
+fn get_words(rawline: &str) -> Result<Vec<String>> {
+    #[derive(PartialEq, Eq)]
+    enum State {
+        SingleQuoted,
+        DoubleQuoted,
+        Unquoted,
+        Expansion(usize),
+    }
+
+    let mut words = Vec::<String>::new();
+    let mut word = String::new();
+
+    let mut state = State::Unquoted;
+
+    for ch in rawline.chars() {
+        match state {
+            State::Unquoted => match ch {
+                ' ' | '\n' | '\t' => {
+                        if !word.is_empty() {
+                        words.push(word);
+                        word = String::new();
+                }
+            }
+                '\'' => {
+                    word.push(ch);
+                    state = State::SingleQuoted;
+                }
+                '\"' => {
+                    word.push(ch);
+                    state = State::DoubleQuoted;
+                }
+                '{' => {
+                    word.push(ch);
+                    state = State::Expansion(1);
+                }
+                _ => {
+                    word.push(ch);
+                }
+            },
+            State::SingleQuoted => {
+                word.push(ch);
+                if ch == '\'' {
+                        state = State::Unquoted;
+                    } 
+            }
+            State::DoubleQuoted => {
+                word.push(ch);
+                if ch == '\"' {
+                    state = State::Unquoted;
+                } 
+            }
+            State::Expansion(n) => {
+                word.push(ch);
+                if ch == '{' {
+                    state = State::Expansion(n + 1);
+                } else if ch == '}' {
+                    state = State::Expansion(n - 1);
+                }
+
+                if state == State::Expansion(0) {
+                    state = State::Unquoted
+                }
+            }
+        }
+    }
+    
+    if !word.is_empty() {
+        words.push(word);
+    }
+
+    match state {
+        State::SingleQuoted => Err(anyhow!("Unmatched single quote.")),
+        State::DoubleQuoted => Err(anyhow!("Unmatched double quote.")),
+        State::Expansion(_) => Err(anyhow!("Unmatched brace.")),
+        State::Unquoted => Ok(words),
+    }
+}
+
 
 fn get_line_kind(rawline: &str) -> LineKind {
     let mut first_word = String::new();
