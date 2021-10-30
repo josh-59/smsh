@@ -10,6 +10,16 @@ use crate::sources::SourceKind;
 mod word;
 use word::Word;
 
+#[derive(Clone, PartialEq, Eq, Debug)]
+enum LineKind {
+    Normal,
+    If,
+    Elif,
+    Else,
+    While,
+    For,
+}
+
 // Represents a logical line given to the shell.
 // A logical line can transcend physical lines by
 // quoting, by backslash escaping a newline, and by
@@ -20,43 +30,25 @@ pub struct Line {
     indentation: usize,
     source: SourceKind,
     line_num: usize,
+    line_kind: LineKind,
 }
 
 impl Line {
     pub fn new(rawline: String, line_num: usize, source: SourceKind) -> Line {
-        let mut spaces: usize = 0;
-        let mut leading_whitespace: usize = 0;
-        let mut indentation: usize = 0;
-
-        for ch in rawline.chars() {
-            if ch == ' ' {
-                leading_whitespace += 1;
-                if spaces == 3 {
-                    indentation += 1;
-                    spaces = 0;
-                } else {
-                    spaces += 1;
-                }
-            } else if ch == '\t' {
-                leading_whitespace += 1;
-                indentation += 1;
-                spaces = 0;
-            } else {
-                break;
-            }
-        }
-
-        let mut rawline = rawline[leading_whitespace..].to_string();
+        let (mut rawline, indentation) = get_indentation(rawline);
 
         while rawline.ends_with('\n') {
             rawline.pop();
         }
+
+        let line_kind = get_line_kind(&rawline);
 
         Line {
             rawline,
             indentation,
             source,
             line_num,
+            line_kind,
         }
     }
 
@@ -273,6 +265,66 @@ impl fmt::Display for Line {
         }
     }
 }
+
+fn get_line_kind(rawline: &str) -> LineKind {
+    let mut first_word = String::new();
+
+    for ch in rawline.chars() {
+        if ch.is_whitespace() {
+            break;
+        }
+        first_word.push(ch);
+    }
+
+    match first_word.as_str() {
+        "if" => {
+            LineKind::If
+        }
+        "elif" => {
+            LineKind::Elif
+        }
+        "else" => {
+            LineKind::Else
+        }
+        "while" => {
+            LineKind::While
+        }
+        "for" => {
+            LineKind::For
+        } 
+        _ => {
+            LineKind::Normal
+        }
+    }
+}
+
+fn get_indentation(rawline: String) -> (String, usize) {
+    let mut spaces: usize = 0;
+    let mut leading_whitespace: usize = 0;
+    let mut indentation: usize = 0;
+
+    for ch in rawline.chars() {
+        if ch == ' ' {
+            leading_whitespace += 1;
+            if spaces == 3 {
+                indentation += 1;
+                spaces = 0;
+            } else {
+                spaces += 1;
+            }
+        } else if ch == '\t' {
+            leading_whitespace += 1;
+            indentation += 1;
+            spaces = 0;
+        } else {
+            break;
+        }
+    }
+    
+    (rawline[leading_whitespace..].to_string(), indentation)
+
+}
+
 
 #[cfg(test)]
 mod test {
