@@ -16,5 +16,11 @@ Anyone is welcome to contribute to the project.
 Ideas and suggestions are welcome as well.
 
 ## To Do
+- For loop (Iterator over words)
+- While loop
+- If, Elif, Else
+- Pretty (and verbose) error printing
+- Pipes, PipeElement, Pipeline
+- use Reedline readline library
 - Negative selection index support
-- Selection support on quote-delimited strings
+- Selection support on quote-delimited strings (string literals)
