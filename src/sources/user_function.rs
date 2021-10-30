@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use super::{Source, SourceKind};
+use super::{InputSource, SourceKind};
 use crate::line::Line;
 
 #[derive(Clone)]
@@ -19,7 +19,7 @@ impl UserFunction {
         }
     }
 
-    pub fn build_source(self) -> Box<dyn Source> {
+    pub fn build_source(self) -> Box<dyn InputSource> {
         Box::new(self)
     }
 
@@ -28,7 +28,7 @@ impl UserFunction {
     }
 }
 
-impl Source for UserFunction {
+impl InputSource for UserFunction {
     fn get_line(&mut self, _prompt: Option<String>) -> Result<Option<Line>> {
         if self.line_num == self.fn_body.len() {
             Ok(None)
