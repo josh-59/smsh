@@ -1,5 +1,5 @@
 use crate::line::Line;
-use crate::sources::{user_function::UserFunction, BufferSource, Source};
+use crate::sources::{user_function::UserFunction, InputSource};
 use anyhow::Result;
 use nix::unistd;
 
@@ -17,7 +17,7 @@ use init::init;
 
 pub struct Shell {
     state: State,
-    sources: Vec<Box<dyn Source>>,
+    sources: Vec<Box<dyn InputSource>>,
     builtins: HashMap<&'static str, Builtin>,
     user_variables: HashMap<String, String>,
     user_functions: HashMap<String, UserFunction>,
@@ -49,6 +49,7 @@ impl Shell {
         }
     }
 
+    // TODO: Resolve commented line below!
     pub fn get_block(&mut self) -> Result<Vec<Line>> {
         let mut lines = Vec::<Line>::new();
 
@@ -63,7 +64,7 @@ impl Shell {
                 } else if line.is_empty() {
                     continue;
                 } else {
-                    self.push_source(BufferSource::build_source(vec![line]));
+                    // self.push_source(BufferSource::build_source(vec![line]));
                     break;
                 }
             }
@@ -72,7 +73,7 @@ impl Shell {
         Ok(lines)
     }
 
-    pub fn push_source(&mut self, source: Box<dyn Source>) {
+    pub fn push_source(&mut self, source: Box<dyn InputSource>) {
         self.sources.push(source)
     }
 
@@ -110,8 +111,8 @@ impl Shell {
 
     pub fn backtrace(&mut self) {
         while let Some(mut source) = self.sources.pop() {
-            if !source.is_faux_source() {
-                let _ = source.print_error();
+            if !source.is_faux_source() && !source.is_tty() {
+                source.print_error();
             }
 
             if source.is_tty() {
