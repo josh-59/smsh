@@ -1,5 +1,5 @@
 use crate::line::Line;
-use crate::sources::{user_function::UserFunction, InputSource};
+use crate::sources::{Sources, user_function::UserFunction, InputSource};
 use anyhow::Result;
 use nix::unistd;
 
@@ -17,7 +17,7 @@ use init::init;
 
 pub struct Shell {
     state: State,
-    sources: Vec<Box<dyn InputSource>>,
+    sources: Sources,
     builtins: HashMap<&'static str, Builtin>,
     user_variables: HashMap<String, String>,
     user_functions: HashMap<String, UserFunction>,
@@ -37,48 +37,23 @@ impl Shell {
     }
 
     fn get_line(&mut self) -> Result<Option<Line>> {
-        if let Some(mut source) = self.sources.pop() {
-            if let Some(line) = source.get_line(None)? {
-                self.sources.push(source);
-                Ok(Some(line))
-            } else {
-                self.get_line()
-            }
-        } else {
-            Ok(None)
-        }
+        self.sources.get_line()
     }
 
-    // TODO: Resolve commented line below!
     pub fn get_block(&mut self) -> Result<Vec<Line>> {
-        let mut lines = Vec::<Line>::new();
-
-        if let Some(first_line) = self.get_line()? {
-            let source = first_line.source().clone();
-            let indent = first_line.indentation();
-            lines.push(first_line);
-
-            while let Some(line) = self.get_line()? {
-                if *line.source() == source && line.indentation() == indent {
-                    lines.push(line);
-                } else if line.is_empty() {
-                    continue;
-                } else {
-                    // self.push_source(BufferSource::build_source(vec![line]));
-                    break;
-                }
-            }
-        }
-
-        Ok(lines)
+        self.sources.get_block()
     }
 
     pub fn push_source(&mut self, source: Box<dyn InputSource>) {
-        self.sources.push(source)
+        self.sources.push_source(source)
     }
 
     pub fn clear_sources(&mut self) {
-        self.sources.clear();
+        self.sources.clear_sources();
+    }
+
+    pub fn backtrace(&mut self) {
+        self.sources.backtrace()
     }
 
     pub fn insert_user_variable(&mut self, key: String, val: String) {
@@ -107,19 +82,6 @@ impl Shell {
 
     pub fn state(&self) -> &State {
         &self.state
-    }
-
-    pub fn backtrace(&mut self) {
-        while let Some(mut source) = self.sources.pop() {
-            if !source.is_faux_source() && !source.is_tty() {
-                source.print_error();
-            }
-
-            if source.is_tty() {
-                self.sources.push(source);
-                break;
-            }
-        }
     }
 
     pub fn execute_external_command(&mut self, args: Vec<String>) -> ! {

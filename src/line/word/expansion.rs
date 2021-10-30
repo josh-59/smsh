@@ -1,6 +1,6 @@
 use crate::line::Line;
 use crate::shell::Shell;
-use crate::sources::{BufferSource, SourceKind};
+use crate::sources::{subshell::SubshellSource, SourceKind};
 use anyhow::Result;
 
 use super::{Expansion, Word};
@@ -91,7 +91,7 @@ pub fn subshell_expand(smsh: &mut Shell, line: &str) -> Result<String> {
             close(wr)?;
 
             let line = Line::new(line.to_string(), 0, SourceKind::Subshell);
-            smsh.push_source(BufferSource::build_source(vec![line]));
+            smsh.push_source(SubshellSource::build_source(vec![line]));
 
             while let Err(e) = smsh.run() {
                 eprintln!("smsh (subshell): {}", e);

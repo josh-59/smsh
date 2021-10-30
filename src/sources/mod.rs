@@ -17,6 +17,7 @@ use super::line::Line;
 pub mod script;
 pub mod tty;
 pub mod user_function;
+pub mod subshell;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum SourceKind {
@@ -33,42 +34,74 @@ pub trait InputSource {
     fn print_error(&mut self) -> Result<()>;
 }
 
-// Used to push lines back onto the execution stack
-pub struct SubshellSource {
-    lines: Vec<Line>,
-    line_num: usize,
+pub struct Sources {
+    sources: Vec<Box<dyn InputSource>>,
+    buffer: Vec<Line>,
 }
 
-impl SubshellSource {
-    pub fn build_source(lines: Vec<Line>) -> Box<dyn InputSource> {
-        Box::new(SubshellSource{ lines, line_num: 0 })
+impl Sources {
+    pub fn new() -> Self {
+        Sources { sources: vec![], buffer: vec![] }
     }
-}
 
-impl InputSource for SubshellSource {
-    fn get_line(&mut self, _prompt: Option<String>) -> Result<Option<Line>> {
-        if self.line_num == self.lines.len() {
-            Ok(None)
+    pub fn get_line(&mut self) -> Result<Option<Line>> {
+        if let Some(line) = self.buffer.pop() {
+            return Ok(Some(line));
+        }
+
+        if let Some(mut source) = self.sources.pop() {
+            if let Some(line) = source.get_line(None)? {
+                self.sources.push(source);
+                Ok(Some(line))
+            } else {
+                self.get_line()
+            }
         } else {
-            self.line_num += 1;
-            Ok(Some(self.lines[self.line_num - 1].clone()))
+            Ok(None)
         }
     }
 
-    fn is_tty(&self) -> bool {
-        false
-    }
+    pub fn get_block(&mut self) -> Result<Vec<Line>> {
+        let mut lines = Vec::<Line>::new();
 
-    fn is_faux_source(&self) -> bool {
-        false
-    }
+        if let Some(first_line) = self.get_line()? {
+            let source = first_line.source().clone();
+            let indent = first_line.indentation();
+            lines.push(first_line);
 
-    fn print_error(&mut self) -> Result<()> {
-        if self.line_num > 0 {
-            eprintln!("{}", self.lines[self.line_num - 1]);
+            while let Some(line) = self.get_line()? {
+                if *line.source() == source && line.indentation() == indent {
+                    lines.push(line);
+                } else if line.is_empty() {
+                    continue;
+                } else {
+                    self.buffer.push(line);
+                    break;
+                }
+            }
         }
 
-        Ok(())
+        Ok(lines)
+    }
+
+    pub fn push_source(&mut self, source: Box<dyn InputSource>) {
+        self.sources.push(source)
+    }
+
+    pub fn clear_sources(&mut self) {
+        self.sources.clear();
+    }
+
+    pub fn backtrace(&mut self) {
+        while let Some(mut source) = self.sources.pop() {
+            if !source.is_faux_source() && !source.is_tty() {
+                let _ = source.print_error();
+            }
+
+            if source.is_tty() {
+                self.sources.push(source);
+                break;
+            }
+        }
     }
 }
-

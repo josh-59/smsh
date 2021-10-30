@@ -30,17 +30,17 @@ impl Line {
 
         for ch in rawline.chars() {
             if ch == ' ' {
+                leading_whitespace += 1;
                 if spaces == 3 {
-                    spaces = 0;
                     indentation += 1;
-                    leading_whitespace += 1;
+                    spaces = 0;
                 } else {
                     spaces += 1;
                 }
             } else if ch == '\t' {
-                spaces = 0;
-                indentation += 1;
                 leading_whitespace += 1;
+                indentation += 1;
+                spaces = 0;
             } else {
                 break;
             }

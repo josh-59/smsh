@@ -4,6 +4,7 @@ use super::modules::Module;
 use super::{load_module, Builtin, Shell};
 use super::state::State;
 use crate::sources::{
+    Sources,
     script::Script, 
     user_function::UserFunction,
     tty::Tty,
@@ -17,7 +18,7 @@ use std::path::PathBuf;
 // a user of smsh always gets into its main loop.
 pub fn init() -> Shell {
     let state = State::new();
-    let sources = vec![];
+    let sources = Sources::new();
     let builtins = HashMap::<&'static str, Builtin>::new();
     let user_variables = HashMap::<String, String>::new();
     let user_functions = HashMap::<String, UserFunction>::new();
