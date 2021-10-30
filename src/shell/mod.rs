@@ -30,6 +30,10 @@ impl Shell {
 
     pub fn run(&mut self) -> Result<()> {
         while let Some(mut line) = self.get_line()? {
+            line.get_words()?;
+            line.expand(self)?;
+            line.separate()?;
+            line.select()?;
             line.execute(self)?;
         }
 
@@ -84,7 +88,7 @@ impl Shell {
         &self.state
     }
 
-    pub fn execute_external_command(&mut self, args: Vec<String>) -> ! {
+    pub fn execute_external_command(&mut self, args: Vec<&str>) -> ! {
         if args.len() == 0 {
             exit(0);
         }
