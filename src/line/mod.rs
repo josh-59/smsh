@@ -79,16 +79,40 @@ impl Line {
         Ok(())
     }
 
-    pub fn is_elif(&self) -> bool {
+    // True if line is well-formed if statement
+    pub fn is_if(&self) -> bool {
         if self.words.len() == 0 {
             false
-        } else if self.words[0].text() == "elif" {
-            true
+        } else if self.words[0].text() == "if" {
+            let i = self.words.len() - 1;
+            if self.words[i].text().ends_with(':') {
+                true
+            } else {
+                false
+            }
         } else {
             false
         }
     }
 
+
+    // True if line is well-formed elif statement
+    pub fn is_elif(&self) -> bool {
+        if self.words.len() == 0 {
+            false
+        } else if self.words[0].text() == "elif" {
+            let i = self.words.len() - 1;
+            if self.words[i].text().ends_with(':') {
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+
+    // True if line is well-formed else statement
     pub fn is_else(&self) -> bool {
         if self.words.len() == 0 {
             false
@@ -133,18 +157,23 @@ impl Line {
         }
     }
 
-    pub fn get_conditional(&self) -> String {
+    pub fn get_conditional(&self) -> Result<String> {
         let mut conditional = String::new();
 
-        for s in &self.words {
+        for s in &self.words[1..] {
             conditional.push_str(s.text());
             conditional.push(' ');
         }
 
-        conditional.pop();
-        conditional.pop();
+        conditional.pop();  // Remove trailing whitespace
 
-        conditional
+        if conditional.ends_with(':') {
+            conditional.pop();  // Remove trailing semicolon
+            Ok(conditional)
+        } else {
+            Err(anyhow!("Improperly formed conditional: No trailing semicolon present"))
+        }
+
     }
 }
 

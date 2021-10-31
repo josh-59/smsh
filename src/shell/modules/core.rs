@@ -121,26 +121,13 @@ pub fn r#fn(smsh: &mut Shell, line: &mut Line) -> Result<()> {
     Ok(())
 }
 
-// XXX: Kind of ugly: Since this is implemented as a builtin,
-// must parse a vector of strings, then deal with 'Line' structs
-// afterwards.
 pub fn r#if(smsh: &mut Shell, line: &mut Line) -> Result<()> {
-    let argv = line.argv();
-
-    if argv.len() < 2 || !argv[argv.len() - 1].ends_with(':') {
+    if !line.is_if() {
         smsh.set_rv(1);
         return Err(anyhow!("if: Improperly formed conditional"));
     }
 
-    let mut conditional = String::new();
-
-    for arg in &argv[1..] {
-        conditional.push_str(arg);
-        conditional.push(' ');
-    }
-
-    conditional.pop(); // Remove trailing whitespace
-    conditional.pop(); // Remove trailing semicolon
+    let mut conditional = line.get_conditional()?;
 
     let body = smsh.get_block(line.source(), line.indentation() + 1)?;
 
@@ -152,7 +139,7 @@ pub fn r#if(smsh: &mut Shell, line: &mut Line) -> Result<()> {
 
     while let Some(line) = smsh.get_line(Prompt::Block)? {
         if line.is_elif() {
-            let conditional = line.get_conditional();
+            let conditional = line.get_conditional()?;
             conditionals.push(conditional);
 
             let body = smsh.get_block(line.source(), line.indentation() + 1)?;
@@ -170,8 +157,7 @@ pub fn r#if(smsh: &mut Shell, line: &mut Line) -> Result<()> {
         else {
             None
         }
-    }
-    else {
+    } else {
         None
     };
 
