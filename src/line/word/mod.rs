@@ -48,6 +48,7 @@ pub struct Word {
     separator: Separator,
     selection: Selection,
     separated_text: Vec<String>,
+    selected_text: Vec<String>,
 }
 
 // A word is a single logical unit of input text.
@@ -90,13 +91,14 @@ impl Word {
             separator,
             selection,
             separated_text: Vec::<String>::new(),
+            selected_text: Vec::<String>::new(),
         };
 
         Ok(word)
     }
 
-    pub fn separated_text(&self) -> &Vec<String> {
-        &self.separated_text
+    pub fn selected_text(&self) -> &Vec<String> {
+        &self.selected_text
     }
 
     // Replaces self.text with expanded value
@@ -126,33 +128,26 @@ impl Word {
                 Selection::Index(n) => {
                     if *n < self.separated_text.len() {
                         let word = self.separated_text[*n].clone();
-                        self.separated_text.clear();
-                        self.separated_text.push(word);
-                    } else {
-                        self.separated_text.clear();
+                        self.selected_text.push(word);
                     }
                 }
                 Selection::Slice(n, m) => {
                     if self.separated_text.len() > 0 && *n < self.separated_text.len() {
-                        let mut words = Vec::<String>::new();
-    
                         if *m > *n {
                             let min = min(self.separated_text.len() - 1, *m);
     
                             for w in &self.separated_text[*n..min] {
-                                words.push(w.to_string())
+                                self.selected_text.push(w.to_string());
                             }
                         } else if *m == 0 {
                             for w in &self.separated_text[*n..] {
-                                words.push(w.to_string())
+                                self.selected_text.push(w.to_string());
                             }
                         }
-    
-                        self.separated_text = words;
-    
                     } 
                 }
-                _ => {
+                Selection::All => {
+                    self.selected_text = self.separated_text.clone();
                 }
             }
         }

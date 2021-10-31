@@ -107,7 +107,7 @@ impl Line {
         let mut strs = Vec::<&str>::new();
 
         for word in &self.words {
-            for s in word.separated_text() {
+            for s in word.selected_text() {
                 strs.push(s);
             }
         }
