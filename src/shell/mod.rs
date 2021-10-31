@@ -14,8 +14,6 @@ mod modules;
 use modules::Builtin;
 mod init;
 use init::init;
-pub mod constructs;
-
 
 pub struct Shell {
     state: State,
@@ -41,7 +39,7 @@ impl Shell {
         Ok(())
     }
 
-    fn get_line(&mut self, prompt: Prompt) -> Result<Option<Line>> {
+    pub fn get_line(&mut self, prompt: Prompt) -> Result<Option<Line>> {
         self.sources.get_line(prompt)
     }
 

@@ -107,14 +107,6 @@ impl Sources {
         self.sources.clear();
     }
 
-    pub fn is_tty(&self) -> bool {
-        if let Some(source) = self.sources.last() {
-            source.is_tty()
-        } else {
-            false
-        }
-    }
-
     pub fn backtrace(&mut self) {
         while let Some(mut source) = self.sources.pop() {
             if !source.is_faux_source() && !source.is_tty() {

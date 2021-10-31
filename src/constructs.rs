@@ -1,10 +1,8 @@
 use crate::shell::Shell;
-use crate::sources::user_function::UserFunction;
 use crate::sources::Prompt;
 use crate::line::Line;
 
 use anyhow::{anyhow, Result};
-use std::env;
 
 pub fn r#if(smsh: &mut Shell, line: &mut Line) -> Result<()> {
     if !line.is_if() {

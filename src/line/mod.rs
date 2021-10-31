@@ -3,7 +3,7 @@ use std::fmt;
 
 use crate::shell::Shell;
 use crate::sources::SourceKind;
-use crate::shell::constructs::r#if;
+use crate::constructs::r#if;
 
 mod word;
 use word::Word;

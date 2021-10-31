@@ -1,6 +1,6 @@
 use crate::shell::Shell;
+use crate::shell::modules::unload_module;
 use crate::sources::user_function::UserFunction;
-use crate::sources::Prompt;
 use crate::line::Line;
 
 use anyhow::{anyhow, Result};
@@ -59,17 +59,16 @@ pub fn ulm_builtin(smsh: &mut Shell, line: &mut Line) -> Result<()> {
     if argv.len() == 2 {
         match argv[1] {
             "core" => {
-                smsh.set_rv(3);
-                Err(anyhow!("Unable to unload smsh core module!"))
+                unload_module(smsh, Module::Core)
             }
             _ => {
                 smsh.set_rv(2);
-                Err(anyhow!("Unrecognized module {}", argv[1]))
+                Err(anyhow!("unload_module: Unrecognized module {}", argv[1]))
             }
         }
     } else {
         smsh.set_rv(1);
-        Err(anyhow!("Improper invocation of self::unload_module"))
+        Err(anyhow!("unload_module: Improper invocation of self::unload_module"))
     }
 }
 
