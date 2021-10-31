@@ -31,7 +31,6 @@ impl Shell {
 
     pub fn run(&mut self) -> Result<()> {
         while let Some(mut line) = self.get_line()? {
-            line.get_words()?;
             line.expand(self)?;
             line.separate()?;
             line.select()?;
