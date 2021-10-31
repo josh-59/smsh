@@ -1,5 +1,4 @@
 use anyhow::Result;
-use nix::unistd::getuid;
 use std::io::{self, Stdin, Write};
 
 use super::{Source, SourceKind, is_complete};
@@ -40,10 +39,8 @@ impl Source for Tty {
     fn get_line(&mut self, prompt: Option<String>) -> Result<Option<Line>> {
         let prompt = if let Some(p) = prompt {
             p
-        } else if getuid().is_root() {
-            "# ".to_string()
         } else {
-            "$ ".to_string()
+            "> ".to_string()
         };
 
         let mut buffer = String::new();

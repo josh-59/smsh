@@ -66,20 +66,20 @@ impl Sources {
     pub fn get_block(&mut self) -> Result<Vec<Line>> {
         let mut lines = Vec::<Line>::new();
 
-        if let Some(first_line) = self.get_line(Some("> ".to_string()))? {
-            let source = first_line.source().clone();
-            let indent = first_line.indentation();
-            lines.push(first_line);
+        if let Some(mut source) = self.sources.pop() {
+            if let Some(first_line) = source.get_line(None)? {
+                let source_kind = first_line.source().clone();
+                let indent = first_line.indentation();
+                lines.push(first_line);
 
-            while let Some(line) = self.get_line(Some("> ".to_string()))? {
-                if *line.source() == source && line.indentation() == indent {
-                    lines.push(line);
-                } else if line.is_empty() {
-                    self.buffer.push(line);
-                    break;
+                while let Some(line) = source.get_line(None)? {
+                    if *line.source() == source_kind && line.indentation() == indent {
+                        lines.push(line);
                 } else {
-                    self.buffer.push(line);
-                    break;
+                        self.sources.push(source);
+                        self.buffer.push(line);
+                        break;
+                    }
                 }
             }
         }

@@ -1,7 +1,7 @@
 use crate::line::Line;
 use crate::sources::{Sources, SourceKind, user_function::UserFunction, Source};
 use anyhow::{anyhow, Result};
-use nix::unistd::{self, fork, ForkResult};
+use nix::unistd::{self, fork, ForkResult, getuid};
 use nix::sys::wait::{wait, WaitStatus};
 
 use std::collections::HashMap;
@@ -30,7 +30,7 @@ impl Shell {
     }
 
     pub fn run(&mut self) -> Result<()> {
-        while let Some(mut line) = self.get_line(None)? {
+        while let Some(mut line) = self.get_line(Some(self.simple_prompt()))? {
             line.expand(self)?;
             line.separate()?;
             line.select()?;
@@ -96,6 +96,14 @@ impl Shell {
         &self.state
     }
 
+    fn simple_prompt(&self) -> String {
+        if getuid().is_root() {
+            "# ".to_string()
+        } else {
+            "$ ".to_string()
+        }
+    }
+
 
     // Executes `line` in a subshell environment, waits for it
     // and collects its return value.
@@ -134,11 +142,8 @@ impl Shell {
             ForkResult::Parent { child: _, .. } => {
                 match wait()? {
                     WaitStatus::Exited(_pid, exit_status) => {
-                        if exit_status > 0 {
-                            Err(anyhow!("Unable to execute external command `{}`", args[0]))
-                        } else {
-                            Ok(())
-                        }
+                        self.state.rv = exit_status;
+                        Ok(())
                     }
                     _ => {
                         Ok(())
