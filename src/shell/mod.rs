@@ -1,7 +1,7 @@
 use crate::line::Line;
 use crate::sources::{Sources, SourceKind, Prompt, user_function::UserFunction, Source};
 use anyhow::{anyhow, Result};
-use nix::unistd::{self, fork, ForkResult, getuid};
+use nix::unistd::{self, fork, ForkResult};
 use nix::sys::wait::{wait, WaitStatus};
 
 use std::collections::HashMap;
@@ -14,6 +14,7 @@ mod modules;
 use modules::Builtin;
 mod init;
 use init::init;
+pub mod constructs;
 
 
 pub struct Shell {

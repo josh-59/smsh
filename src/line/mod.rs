@@ -3,9 +3,18 @@ use std::fmt;
 
 use crate::shell::Shell;
 use crate::sources::SourceKind;
+use crate::shell::constructs::r#if;
 
 mod word;
 use word::Word;
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum LineKind {
+    Normal,
+    If,
+    Elif,
+    Else,
+}
 
 // Represents a logical line given to the shell.
 // A logical line can transcend physical lines by
@@ -14,6 +23,7 @@ use word::Word;
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Line {
     rawline: String,
+    line_kind: LineKind,
     indentation: usize,
     source: SourceKind,
     line_num: usize,
@@ -31,11 +41,16 @@ impl Line {
         let mut words = Vec::<Word>::new();
 
         for word in get_words(rawline.as_str())? {
-            words.push(Word::new(word)?);
+            if !word.is_empty() {
+                words.push(Word::new(word)?);
+            }
         }
+
+        let line_kind = get_line_kind(&words);
 
         Ok( Line {
             rawline,
+            line_kind,
             indentation,
             source,
             line_num,
@@ -43,12 +58,24 @@ impl Line {
         } )
     }
 
-    pub fn source(&self) -> &SourceKind {
-        &self.source
-    }
-
     pub fn indentation(&self) -> usize {
         self.indentation
+    }
+
+    pub fn is_if(&self) -> bool {
+        self.line_kind == LineKind::If
+    }
+
+    pub fn is_elif(&self) -> bool {
+        self.line_kind == LineKind::Elif
+    }
+
+    pub fn is_else(&self) -> bool {
+        self.line_kind == LineKind::Else
+    }
+
+    pub fn source(&self) -> &SourceKind {
+        &self.source
     }
 
     pub fn text(&self) -> String {
@@ -79,50 +106,7 @@ impl Line {
         Ok(())
     }
 
-    // True if line is well-formed if statement
-    pub fn is_if(&self) -> bool {
-        if self.words.len() == 0 {
-            false
-        } else if self.words[0].text() == "if" {
-            let i = self.words.len() - 1;
-            if self.words[i].text().ends_with(':') {
-                true
-            } else {
-                false
-            }
-        } else {
-            false
-        }
-    }
-
-
-    // True if line is well-formed elif statement
-    pub fn is_elif(&self) -> bool {
-        if self.words.len() == 0 {
-            false
-        } else if self.words[0].text() == "elif" {
-            let i = self.words.len() - 1;
-            if self.words[i].text().ends_with(':') {
-                true
-            } else {
-                false
-            }
-        } else {
-            false
-        }
-    }
-
-    // True if line is well-formed else statement
-    pub fn is_else(&self) -> bool {
-        if self.words.len() == 0 {
-            false
-        } else if self.words[0].text() == "else:" {
-            true
-        } else {
-            false
-        }
-    }
-
+    // TODO: Move this to PipeElem struct
     pub fn argv(&self) -> Vec<&str> {
         let mut strs = Vec::<&str>::new();
 
@@ -138,22 +122,32 @@ impl Line {
     }
 
     pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
-
-        let strs = self.argv();
+        match &self.line_kind {
+            LineKind::Normal => {
+                let strs = self.argv();
+        
+                if strs.is_empty() {
+                    return Ok(());
+                }
     
-        if strs.is_empty() {
-            return Ok(());
-        }
-
-        if let Some(f) = smsh.get_user_function(strs[0]) {
-            smsh.push_source(f.build_source());
-            Ok(())
-        } else if let Some(f) = smsh.get_builtin(strs[0]) {
-            f(smsh, self)?;
-            Ok(())
-        } else {
-            smsh.execute_external_command(strs)?;
-            Ok(())
+                if let Some(f) = smsh.get_user_function(strs[0]) {
+                    smsh.push_source(f.build_source());
+                    Ok(())
+                } else if let Some(f) = smsh.get_builtin(strs[0]) {
+                    f(smsh, self)?;
+                    Ok(())
+                } else {
+                    smsh.execute_external_command(strs)?;
+                    Ok(())
+                }
+            }
+            LineKind::If => {
+                r#if(smsh, self)?;
+                Ok(())
+            }
+            _ => {
+                Ok(())
+            }
         }
     }
 
@@ -173,7 +167,6 @@ impl Line {
         } else {
             Err(anyhow!("Improperly formed conditional: No trailing semicolon present"))
         }
-
     }
 }
 
@@ -205,6 +198,20 @@ impl fmt::Display for Line {
                 )
             }
         }
+    }
+}
+
+fn get_line_kind(words: &Vec<Word>) -> LineKind {
+    if words.len() == 0 {
+        LineKind::Normal
+    } else if words[0].text() == "if" {
+        LineKind::If
+    } else if words[0].text() == "elif" {
+        LineKind::Elif
+    } else if words[0].text() == "else:" {
+        LineKind::Else
+    } else {
+        LineKind::Normal
     }
 }
 
