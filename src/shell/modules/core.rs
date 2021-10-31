@@ -109,7 +109,8 @@ pub fn r#fn(smsh: &mut Shell, line: &mut Line) -> Result<()> {
     let mut fn_name = argv[1].to_string();
     fn_name.pop();
 
-    let fn_body = smsh.get_block()?.iter().map(|x| x.text()).collect();
+    let fn_body = smsh.get_block(line.source(), line.indentation() + 1)?
+        .iter().map(|x| x.text()).collect();
 
     let func = UserFunction::new(fn_name, fn_body);
 
@@ -140,7 +141,7 @@ pub fn r#if(smsh: &mut Shell, line: &mut Line) -> Result<()> {
     conditional.pop(); // Remove trailing whitespace
     conditional.pop(); // Remove trailing semicolon
 
-    let body = smsh.get_block()?;
+    let body = smsh.get_block(line.source(), line.indentation() + 1)?;
 
     let mut bodies = vec![body];  // Vector of conditional bodies,
     // We must collect these first, then determine which to execute
@@ -153,7 +154,7 @@ pub fn r#if(smsh: &mut Shell, line: &mut Line) -> Result<()> {
             let conditional = line.get_conditional();
             conditionals.push(conditional);
 
-            let body = smsh.get_block()?;
+            let body = smsh.get_block(line.source(), line.indentation() + 1)?;
             bodies.push(body);
         } else {
             smsh.push_back(line);
@@ -163,7 +164,7 @@ pub fn r#if(smsh: &mut Shell, line: &mut Line) -> Result<()> {
 
     let else_body = if let Some(line) = smsh.get_line(None)? {
         if line.is_else() {
-            Some(smsh.get_block()?)
+            Some(smsh.get_block(line.source(), line.indentation() + 1)?)
         }
         else {
             None

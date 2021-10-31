@@ -50,11 +50,11 @@ impl Sources {
         }
 
         if let Some(mut source) = self.sources.pop() {
-            if let Some(line) = source.get_line(prompt)? {
+            if let Some(line) = source.get_line(prompt.clone())? {
                 self.sources.push(source);
                 Ok(Some(line))
             } else {
-                self.get_line(None)
+                self.get_line(prompt)
             }
         } else {
             Ok(None)
@@ -63,23 +63,17 @@ impl Sources {
 
     // Captures one block from a single source
     // Blocks are delimited by a single blank line.
-    pub fn get_block(&mut self) -> Result<Vec<Line>> {
+    pub fn get_block(&mut self, source_kind: &SourceKind, indent: usize) -> Result<Vec<Line>> {
         let mut lines = Vec::<Line>::new();
 
         if let Some(mut source) = self.sources.pop() {
-            if let Some(first_line) = source.get_line(None)? {
-                let source_kind = first_line.source().clone();
-                let indent = first_line.indentation();
-                lines.push(first_line);
-
-                while let Some(line) = source.get_line(None)? {
-                    if *line.source() == source_kind && line.indentation() == indent {
-                        lines.push(line);
-                } else {
-                        self.sources.push(source);
-                        self.buffer.push(line);
-                        break;
-                    }
+            while let Some(line) = source.get_line(None)? {
+                if *line.source() == *source_kind && line.indentation() == indent {
+                    lines.push(line);
+            } else {
+                    self.sources.push(source);
+                    self.buffer.push(line);
+                    break;
                 }
             }
         }
@@ -105,6 +99,14 @@ impl Sources {
 
     pub fn clear_sources(&mut self) {
         self.sources.clear();
+    }
+
+    pub fn is_tty(&self) -> bool {
+        if let Some(source) = self.sources.last() {
+            source.is_tty()
+        } else {
+            false
+        }
     }
 
     pub fn backtrace(&mut self) {

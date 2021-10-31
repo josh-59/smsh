@@ -30,7 +30,7 @@ impl Shell {
     }
 
     pub fn run(&mut self) -> Result<()> {
-        while let Some(mut line) = self.get_line(Some(self.simple_prompt()))? {
+        while let Some(mut line) = self.get_line(Some(self.get_prompt()))? {
             line.expand(self)?;
             line.separate()?;
             line.select()?;
@@ -44,8 +44,8 @@ impl Shell {
         self.sources.get_line(prompt)
     }
 
-    pub fn get_block(&mut self) -> Result<Vec<Line>> {
-        self.sources.get_block()
+    pub fn get_block(&mut self, source_kind: &SourceKind, indent: usize) -> Result<Vec<Line>> {
+        self.sources.get_block(source_kind, indent)
     }
 
     pub fn push_source(&mut self, source: Box<dyn Source>) {
@@ -96,7 +96,7 @@ impl Shell {
         &self.state
     }
 
-    fn simple_prompt(&self) -> String {
+    fn get_prompt(&self) -> String {
         if getuid().is_root() {
             "# ".to_string()
         } else {
