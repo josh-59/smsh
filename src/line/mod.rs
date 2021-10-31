@@ -7,16 +7,6 @@ use crate::sources::SourceKind;
 mod word;
 use word::Word;
 
-#[derive(Clone, PartialEq, Eq, Debug)]
-enum LineKind {
-    Normal,
-    If,
-    Elif,
-    Else,
-    While,
-    For,
-}
-
 // Represents a logical line given to the shell.
 // A logical line can transcend physical lines by
 // quoting, by backslash escaping a newline, and by
@@ -27,7 +17,6 @@ pub struct Line {
     indentation: usize,
     source: SourceKind,
     line_num: usize,
-    line_kind: LineKind,
     words: Vec<Word>
 }
 
@@ -38,8 +27,6 @@ impl Line {
         while rawline.ends_with('\n') {
             rawline.pop();
         }
-
-        let line_kind = get_line_kind(&rawline);
 
         let mut words = Vec::<Word>::new();
 
@@ -52,7 +39,6 @@ impl Line {
             indentation,
             source,
             line_num,
-            line_kind,
             words,
         } )
     }
@@ -97,39 +83,66 @@ impl Line {
         Ok(())
     }
 
-    pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
-        match self.line_kind {
-            LineKind::Normal => {
-                let strs: Vec<&str> = self.words.iter()
-                    .filter_map(|x| {
-                        if x.is_empty() {
-                            None
-                        }
-                        else {
-                            Some(x.text())
-                        }
-                    })
-                    .collect();
-
-                if strs.is_empty() {
-                    return Ok(());
-                }
-
-                if let Some(f) = smsh.get_user_function(strs[0]) {
-                    smsh.push_source(f.build_source());
-                    Ok(())
-                } else if let Some(f) = smsh.get_builtin(strs[0]) {
-                    f(smsh, strs)?;
-                    Ok(())
-                } else {
-                    smsh.execute_external_command(strs)?;
-                    Ok(())
-                }
-            }
-            _ => {
-                return Ok(())
-            }
+    pub fn is_elif(&self) -> bool {
+        if self.words.len() == 0 {
+            false
+        } else if self.words[0].text() == "elif" {
+            true
+        } else {
+            false
         }
+    }
+
+    pub fn is_else(&self) -> bool {
+        if self.words.len() == 0 {
+            false
+        } else if self.words[0].text() == "else:" {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
+        let strs: Vec<&str> = self.words.iter()
+            .filter_map(|x| {
+                if x.is_empty() {
+                    None
+                }
+                else {
+                    Some(x.text())
+                }
+            })
+            .collect();
+
+        if strs.is_empty() {
+            return Ok(());
+        }
+
+        if let Some(f) = smsh.get_user_function(strs[0]) {
+            smsh.push_source(f.build_source());
+            Ok(())
+        } else if let Some(f) = smsh.get_builtin(strs[0]) {
+            f(smsh, strs)?;
+            Ok(())
+        } else {
+            smsh.execute_external_command(strs)?;
+            Ok(())
+        }
+    }
+
+    pub fn get_conditional(&self) -> String {
+        let mut conditional = String::new();
+
+        for s in &self.words {
+            conditional.push_str(s.text());
+            conditional.push(' ');
+        }
+
+        conditional.pop();
+        conditional.pop();
+
+        conditional
     }
 }
 
@@ -245,38 +258,6 @@ fn get_words(rawline: &str) -> Result<Vec<String>> {
 }
 
 
-fn get_line_kind(rawline: &str) -> LineKind {
-    let mut first_word = String::new();
-
-    for ch in rawline.chars() {
-        if ch.is_whitespace() {
-            break;
-        }
-        first_word.push(ch);
-    }
-
-    match first_word.as_str() {
-        "if" => {
-            LineKind::If
-        }
-        "elif" => {
-            LineKind::Elif
-        }
-        "else" => {
-            LineKind::Else
-        }
-        "while" => {
-            LineKind::While
-        }
-        "for" => {
-            LineKind::For
-        } 
-        _ => {
-            LineKind::Normal
-        }
-    }
-}
-
 fn get_indentation(rawline: String) -> (String, usize) {
     let mut spaces: usize = 0;
     let mut leading_whitespace: usize = 0;
@@ -317,7 +298,6 @@ mod test {
             indentation: 0,
             source: SourceKind::Subshell,
             line_num: 0,
-            line_kind: LineKind::Normal,
             words: vec![]
         };
 
@@ -331,7 +311,6 @@ mod test {
             indentation: 1,
             source: SourceKind::Subshell,
             line_num: 0,
-            line_kind: LineKind::Normal,
             words: vec![]
         };
 
@@ -345,7 +324,6 @@ mod test {
             indentation: 0,
             source: SourceKind::Subshell,
             line_num: 0,
-            line_kind: LineKind::Normal,
             words: vec![]
         };
 
@@ -359,7 +337,6 @@ mod test {
             indentation: 0,
             source: SourceKind::Subshell,
             line_num: 0,
-            line_kind: LineKind::If,
             words: vec![]
         };
 

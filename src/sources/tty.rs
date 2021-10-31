@@ -71,7 +71,7 @@ impl Source for Tty {
                 }
             }
 
-            let mut line = Line::new(buffer, self.line_num, SourceKind::Tty)?;
+            let line = Line::new(buffer, self.line_num, SourceKind::Tty)?;
 
             self.last_line = Some(line.clone());
 

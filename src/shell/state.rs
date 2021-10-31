@@ -1,11 +1,14 @@
+
 pub struct State {
-    interactive: bool
+    interactive: bool,
+    pub rv: i32,
 }
 
 impl State {
     pub fn new() -> Self {
         State { 
-            interactive: true
+            interactive: true,
+            rv: 0,
         }
     }
 

@@ -15,10 +15,10 @@ pub fn load_module(smsh: &mut Shell, module: Module) {
             smsh.builtins.insert("cd", core::chdir);
             smsh.builtins.insert("let", core::r#let);
             smsh.builtins.insert("fn", core::r#fn);
+            smsh.builtins.insert("if", core::r#if);
             smsh.builtins.insert("exit", core::exit);
             smsh.builtins.insert("self::load_module", core::lm_builtin);
-            smsh.builtins
-                .insert("self::unload_module", core::ulm_builtin);
+            smsh.builtins.insert("self::unload_module", core::ulm_builtin);
         }
     }
 }

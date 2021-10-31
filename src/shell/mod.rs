@@ -1,5 +1,5 @@
 use crate::line::Line;
-use crate::sources::{Sources, user_function::UserFunction, Source};
+use crate::sources::{Sources, SourceKind, user_function::UserFunction, Source};
 use anyhow::{anyhow, Result};
 use nix::unistd::{self, fork, ForkResult};
 use nix::sys::wait::{wait, WaitStatus};
@@ -30,7 +30,7 @@ impl Shell {
     }
 
     pub fn run(&mut self) -> Result<()> {
-        while let Some(mut line) = self.get_line()? {
+        while let Some(mut line) = self.get_line(None)? {
             line.expand(self)?;
             line.separate()?;
             line.select()?;
@@ -40,8 +40,8 @@ impl Shell {
         Ok(())
     }
 
-    fn get_line(&mut self) -> Result<Option<Line>> {
-        self.sources.get_line()
+    fn get_line(&mut self, prompt: Option<String>) -> Result<Option<Line>> {
+        self.sources.get_line(prompt)
     }
 
     pub fn get_block(&mut self) -> Result<Vec<Line>> {
@@ -50,6 +50,14 @@ impl Shell {
 
     pub fn push_source(&mut self, source: Box<dyn Source>) {
         self.sources.push_source(source)
+    }
+
+    pub fn push_back(&mut self, line: Line) {
+        self.sources.push_back(line);
+    }
+
+    pub fn push_block(&mut self, lines: Vec<Line>) {
+        self.sources.push_block(lines);
     }
 
     pub fn clear_sources(&mut self) {
@@ -86,6 +94,39 @@ impl Shell {
 
     pub fn state(&self) -> &State {
         &self.state
+    }
+
+
+    // Executes `line` in a subshell environment, waits for it
+    // and collects its return value.
+    pub fn execute_subshell(&mut self, line: &str) -> Result<bool> {
+        match unsafe { fork()? } {
+            ForkResult::Parent { child: _, .. } => {
+                match wait()? {
+                    WaitStatus::Exited(_pid, exit_status) => {
+                        if exit_status == 0 {
+                            Ok(true)
+                        } else {
+                            Ok(false)
+                        }
+                    }
+                    _ => {
+                        Err(anyhow!("wait: Failed to wait on subshell with line {}", line))
+                    }
+                }
+            }
+            ForkResult::Child => {
+                self.clear_sources();
+                let line = Line::new(line.to_string(), 0, SourceKind::Subshell)?;
+                self.push_back(line);
+
+                while let Err(e) = self.run() {
+                    eprintln!("smsh (subshell): {}", e);
+                }
+
+                std::process::exit(self.state.rv);
+            }
+        }
     }
 
     pub fn execute_external_command(&mut self, args: Vec<&str>) -> Result<()> {
@@ -130,5 +171,6 @@ impl Shell {
         }
     }
 }
+
 
 

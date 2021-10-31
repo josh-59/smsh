@@ -44,36 +44,39 @@ impl Sources {
         Sources { sources: vec![], buffer: vec![] }
     }
 
-    pub fn get_line(&mut self) -> Result<Option<Line>> {
+    pub fn get_line(&mut self, prompt: Option<String> ) -> Result<Option<Line>> {
         if let Some(line) = self.buffer.pop() {
             return Ok(Some(line));
         }
 
         if let Some(mut source) = self.sources.pop() {
-            if let Some(line) = source.get_line(None)? {
+            if let Some(line) = source.get_line(prompt)? {
                 self.sources.push(source);
                 Ok(Some(line))
             } else {
-                self.get_line()
+                self.get_line(None)
             }
         } else {
             Ok(None)
         }
     }
 
+    // Captures one block from a signle source
+    // Blocks are delimited by a single blank line.
     pub fn get_block(&mut self) -> Result<Vec<Line>> {
         let mut lines = Vec::<Line>::new();
 
-        if let Some(first_line) = self.get_line()? {
+        if let Some(first_line) = self.get_line(Some("> ".to_string()))? {
             let source = first_line.source().clone();
             let indent = first_line.indentation();
             lines.push(first_line);
 
-            while let Some(line) = self.get_line()? {
+            while let Some(line) = self.get_line(Some("> ".to_string()))? {
                 if *line.source() == source && line.indentation() == indent {
                     lines.push(line);
                 } else if line.is_empty() {
-                    continue;
+                    self.buffer.push(line);
+                    break;
                 } else {
                     self.buffer.push(line);
                     break;
@@ -82,6 +85,18 @@ impl Sources {
         }
 
         Ok(lines)
+    }
+
+    pub fn push_back(&mut self, line: Line) {
+        self.buffer.push(line);
+    }
+
+    // Pushes block of lines onto buffer.
+    // Order is preserved.
+    pub fn push_block(&mut self, lines: Vec<Line>) {
+        for line in lines.iter().rev() {
+            self.buffer.push(line.clone());
+        }
     }
 
     pub fn push_source(&mut self, source: Box<dyn Source>) {
