@@ -113,10 +113,6 @@ impl Word {
         }
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.text.is_empty()
-    }
-
     pub fn text(&self) -> &str {
         &self.text
     }

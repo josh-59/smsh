@@ -1,18 +1,22 @@
 use crate::shell::Shell;
 use crate::sources::user_function::UserFunction;
+use crate::line::Line;
+
 use anyhow::{anyhow, Result};
 use std::env;
 
 use super::{load_module, Module};
 
-pub fn chdir(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
-    if args.len() == 1 {
+pub fn chdir(smsh: &mut Shell, line: &mut Line) -> Result<()> {
+    let argv = line.argv();
+
+    if argv.len() == 1 {
         if let Some(dir) = env::var_os("HOME") {
             env::set_current_dir(dir)?;
             smsh.set_rv(0);
         }
-    } else if args.len() == 2 {
-        env::set_current_dir(&args[1])?;
+    } else if argv.len() == 2 {
+        env::set_current_dir(&argv[1])?;
         smsh.set_rv(0);
     } else {
         smsh.set_rv(0);
@@ -22,14 +26,16 @@ pub fn chdir(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
     Ok(())
 }
 
-pub fn exit(smsh: &mut Shell, _args: Vec<&str>) -> Result<()> {
+pub fn exit(smsh: &mut Shell, _line: &mut Line) -> Result<()> {
     smsh.set_rv(0);
     std::process::exit(smsh.state().rv);
 }
 
-pub fn lm_builtin(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
-    if args.len() == 2 {
-        match args[1] {
+pub fn lm_builtin(smsh: &mut Shell, line: &mut Line) -> Result<()> {
+    let argv = line.argv();
+
+    if argv.len() == 2 {
+        match argv[1] {
             "core" => {
                 load_module(smsh, Module::Core);
                 smsh.set_rv(0);
@@ -37,7 +43,7 @@ pub fn lm_builtin(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
             }
             _ => {
                 smsh.set_rv(1);
-                Err(anyhow!("Unrecognized module {}", args[1]))
+                Err(anyhow!("Unrecognized module {}", argv[1]))
             }
         }
     } else {
@@ -46,16 +52,18 @@ pub fn lm_builtin(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
     }
 }
 
-pub fn ulm_builtin(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
-    if args.len() == 2 {
-        match args[1] {
+pub fn ulm_builtin(smsh: &mut Shell, line: &mut Line) -> Result<()> {
+    let argv = line.argv();
+
+    if argv.len() == 2 {
+        match argv[1] {
             "core" => {
                 smsh.set_rv(3);
                 Err(anyhow!("Unable to unload smsh core module!"))
             }
             _ => {
                 smsh.set_rv(2);
-                Err(anyhow!("Unrecognized module {}", args[1]))
+                Err(anyhow!("Unrecognized module {}", argv[1]))
             }
         }
     } else {
@@ -64,16 +72,18 @@ pub fn ulm_builtin(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
     }
 }
 
-pub fn r#let(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
-    if args.len() < 4 || args[2] != "=" {
+pub fn r#let(smsh: &mut Shell, line: &mut Line) -> Result<()> {
+    let argv = line.argv();
+
+    if argv.len() < 4 || argv[2] != "=" {
         smsh.set_rv(1);
         return Err(anyhow!("Improper invocation of `let`"));
     }
 
-    let key = args[1].to_string();
+    let key = argv[1].to_string();
     let mut value = String::new();
 
-    for word in &args[3..] {
+    for word in &argv[3..] {
         value.push_str(word);
         value.push(' ');
     }
@@ -88,13 +98,15 @@ pub fn r#let(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
 
 // Collect a block of input from the shell, create a
 // a new function with it, and save it into the shell
-pub fn r#fn(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
-    if args.len() != 2 || !args[1].ends_with(':') {
+pub fn r#fn(smsh: &mut Shell, line: &mut Line) -> Result<()> {
+    let argv = line.argv();
+
+    if argv.len() != 2 || !argv[1].ends_with(':') {
         smsh.set_rv(1);
         return Err(anyhow!("Improper invocation of `fn`"));
     }
 
-    let mut fn_name = args[1].to_string();
+    let mut fn_name = argv[1].to_string();
     fn_name.pop();
 
     let fn_body = smsh.get_block()?.iter().map(|x| x.text()).collect();
@@ -110,15 +122,17 @@ pub fn r#fn(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
 // XXX: Kind of ugly: Since this is implemented as a builtin,
 // must parse a vector of strings, then deal with 'Line' structs
 // afterwards.
-pub fn r#if(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
-    if args.len() < 2 || !args[args.len() - 1].ends_with(':') {
+pub fn r#if(smsh: &mut Shell, line: &mut Line) -> Result<()> {
+    let argv = line.argv();
+
+    if argv.len() < 2 || !argv[argv.len() - 1].ends_with(':') {
         smsh.set_rv(1);
         return Err(anyhow!("if: Improperly formed conditional"));
     }
 
     let mut conditional = String::new();
 
-    for arg in &args[1..] {
+    for arg in &argv[1..] {
         conditional.push_str(arg);
         conditional.push(' ');
     }

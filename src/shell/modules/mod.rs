@@ -1,9 +1,11 @@
 use super::Shell;
 use anyhow::{anyhow, Result};
 
+use crate::line::Line;
+
 mod core;
 
-pub type Builtin = fn(&mut Shell, Vec<&str>) -> Result<()>;
+pub type Builtin = fn(&mut Shell, &mut Line) -> Result<()>;
 
 pub enum Module {
     Core,

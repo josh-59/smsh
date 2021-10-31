@@ -55,10 +55,6 @@ impl Line {
         self.rawline.clone()
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.rawline.is_empty()
-    }
-
     pub fn expand(&mut self, smsh: &mut Shell) -> Result<()> {
         for word in &mut self.words {
             word.expand(smsh)?;
@@ -103,15 +99,24 @@ impl Line {
         }
     }
 
-    pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
+    pub fn argv(&self) -> Vec<&str> {
         let mut strs = Vec::<&str>::new();
 
         for word in &self.words {
             for s in word.selected_text() {
-                strs.push(s);
+                if !s.is_empty() {
+                    strs.push(s);
+                }
             }
         }
 
+        strs
+    }
+
+    pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
+
+        let strs = self.argv();
+    
         if strs.is_empty() {
             return Ok(());
         }
@@ -120,7 +125,8 @@ impl Line {
             smsh.push_source(f.build_source());
             Ok(())
         } else if let Some(f) = smsh.get_builtin(strs[0]) {
-            f(smsh, strs)?;
+            std::mem::drop(strs);
+            f(smsh, self)?;
             Ok(())
         } else {
             smsh.execute_external_command(strs)?;
