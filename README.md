@@ -18,7 +18,6 @@ Ideas and suggestions are welcome as well.
 ## To Do
 - For loop (Iterator over words)
 - While loop
-- If, Elif, Else
 - Pretty (and verbose) error printing
 - Pipes, PipeElement, Pipeline
 - use Reedline readline library
