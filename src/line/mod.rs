@@ -17,7 +17,7 @@ pub struct Line {
     indentation: usize,
     source: SourceKind,
     line_num: usize,
-    words: Vec<Word>
+    words: Vec<Word>,
 }
 
 impl Line {
@@ -125,7 +125,6 @@ impl Line {
             smsh.push_source(f.build_source());
             Ok(())
         } else if let Some(f) = smsh.get_builtin(strs[0]) {
-            std::mem::drop(strs);
             f(smsh, self)?;
             Ok(())
         } else {
