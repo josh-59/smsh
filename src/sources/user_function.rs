@@ -39,7 +39,7 @@ impl Source for UserFunction {
                 text,
                 self.line_num,
                 SourceKind::UserFunction(self.fn_name.clone()),
-            )))
+            )?))
         }
     }
 
@@ -55,7 +55,7 @@ impl Source for UserFunction {
         eprintln!("{}", 
                     Line::new(self.fn_body[self.line_num - 1].clone(),
                     self.line_num,
-                    SourceKind::UserFunction(self.fn_name.clone())));
+                    SourceKind::UserFunction(self.fn_name.clone()))?);
         Ok(())
     }
 }

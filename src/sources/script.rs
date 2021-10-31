@@ -45,7 +45,7 @@ impl Source for Script {
             let text = self.body[self.line_num].clone();
             self.line_num += 1;
 
-            let line = Line::new(text, self.line_num, SourceKind::Script(self.file_name()));
+            let line = Line::new(text, self.line_num, SourceKind::Script(self.file_name()))?;
 
             self.last_line = Some(line.clone());
 

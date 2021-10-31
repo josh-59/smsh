@@ -32,7 +32,7 @@ pub struct Line {
 }
 
 impl Line {
-    pub fn new(rawline: String, line_num: usize, source: SourceKind) -> Line {
+    pub fn new(rawline: String, line_num: usize, source: SourceKind) -> Result<Line> {
         let (mut rawline, indentation) = get_indentation(rawline);
 
         while rawline.ends_with('\n') {
@@ -41,18 +41,20 @@ impl Line {
 
         let line_kind = get_line_kind(&rawline);
 
-        Line {
+        let mut words = Vec::<Word>::new();
+
+        for word in get_words(rawline.as_str())? {
+            words.push(Word::new(word)?);
+        }
+
+        Ok( Line {
             rawline,
             indentation,
             source,
             line_num,
             line_kind,
-            words: vec![],
-        }
-    }
-
-    pub fn append(&mut self, text: String) {
-        self.rawline.push_str(text.as_str());
+            words,
+        } )
     }
 
     pub fn source(&self) -> &SourceKind {
@@ -69,14 +71,6 @@ impl Line {
 
     pub fn is_empty(&self) -> bool {
         self.rawline.is_empty()
-    }
-
-    pub fn get_words(&mut self) -> Result<()> {
-        for word in get_words(self.rawline.as_str())? {
-            self.words.push(Word::new(word)?);
-        }
-
-        Ok(())
     }
 
     pub fn expand(&mut self, smsh: &mut Shell) -> Result<()> {
@@ -101,36 +95,6 @@ impl Line {
         }
 
         Ok(())
-    }
-
-    // True if line is a complete logical line
-    pub fn is_complete(&self) -> bool {
-        let mut single_quoted = false;
-        let mut double_quoted = false;
-        let mut escaped = false;
-
-        for ch in self.rawline.chars() {
-            if escaped {
-                escaped = false;
-            } else {
-                match ch {
-                    '\\' => {
-                        escaped = true;
-                    }
-                    '\'' => {
-                        single_quoted = !single_quoted;
-                    }
-                    '\"' => {
-                        double_quoted = !double_quoted;
-                    }
-                    _ => {
-                        continue;
-                    }
-                }
-            }
-        }
-
-        !(single_quoted || double_quoted || escaped)
     }
 
     pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
@@ -200,7 +164,7 @@ impl fmt::Display for Line {
     }
 }
 
-// Breaks line into words according to quoting rules.
+// Breaks rawline into words according to quoting rules.
 // Quotes and braces are preserved, whitespace is removed
 fn get_words(rawline: &str) -> Result<Vec<String>> {
     #[derive(PartialEq, Eq)]
@@ -353,9 +317,11 @@ mod test {
             indentation: 0,
             source: SourceKind::Subshell,
             line_num: 0,
+            line_kind: LineKind::Normal,
+            words: vec![]
         };
 
-        assert_eq!(line, Line::new("cmd".to_string(), 0, SourceKind::Subshell));
+        assert_eq!(line, Line::new("cmd".to_string(), 0, SourceKind::Subshell).unwrap());
     }
 
     #[test]
@@ -365,9 +331,11 @@ mod test {
             indentation: 1,
             source: SourceKind::Subshell,
             line_num: 0,
+            line_kind: LineKind::Normal,
+            words: vec![]
         };
 
-        assert_eq!(line, Line::new("    cmd".to_string(), 0, SourceKind::Subshell));
+        assert_eq!(line, Line::new("    cmd".to_string(), 0, SourceKind::Subshell).unwrap());
     }
 
     #[test]
@@ -377,8 +345,26 @@ mod test {
             indentation: 0,
             source: SourceKind::Subshell,
             line_num: 0,
+            line_kind: LineKind::Normal,
+            words: vec![]
         };
 
-        assert_eq!(line, Line::new("  cmd".to_string(), 0, SourceKind::Subshell));
+        assert_eq!(line, Line::new("  cmd".to_string(), 0, SourceKind::Subshell).unwrap());
     }
+
+    #[test]
+    fn new_line_test_4() {
+        let line = Line {
+            rawline: "if".to_string(),
+            indentation: 0,
+            source: SourceKind::Subshell,
+            line_num: 0,
+            line_kind: LineKind::If,
+            words: vec![]
+        };
+
+        assert_eq!(line, Line::new("if".to_string(), 0, SourceKind::Subshell).unwrap());
+    }
+
 }
+

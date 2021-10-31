@@ -2,7 +2,7 @@ use anyhow::Result;
 use nix::unistd::getuid;
 use std::io::{self, Stdin, Write};
 
-use super::{Source, SourceKind};
+use super::{Source, SourceKind, is_complete};
 use crate::line::Line;
 
 pub struct Tty {
@@ -59,19 +59,19 @@ impl Source for Tty {
         } else {
             self.line_num += 1;
 
-            let mut line = Line::new(buffer, self.line_num, SourceKind::Tty);
-
-            while !line.is_complete() {
+            while !is_complete(buffer.as_str()) {
                 match self.get_secondary_line()? {
                     Some(line_addendum) => {
-                        line.append(line_addendum);
+                        buffer.push_str(line_addendum.as_str());
                     }
                     None => {
                         eprintln!("smsh: Unexpected EOF");
-                        return Ok(Some(Line::new("".to_string(), self.line_num, SourceKind::Tty)));
+                        return Ok(Some(Line::new("".to_string(), self.line_num, SourceKind::Tty)?));
                     }
                 }
             }
+
+            let mut line = Line::new(buffer, self.line_num, SourceKind::Tty)?;
 
             self.last_line = Some(line.clone());
 

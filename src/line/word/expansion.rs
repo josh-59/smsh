@@ -90,7 +90,7 @@ pub fn subshell_expand(smsh: &mut Shell, line: &str) -> Result<String> {
             dup2(wr, 1_i32)?;
             close(wr)?;
 
-            let line = Line::new(line.to_string(), 0, SourceKind::Subshell);
+            let line = Line::new(line.to_string(), 0, SourceKind::Subshell)?;
             smsh.push_source(SubshellSource::build_source(vec![line]));
 
             while let Err(e) = smsh.run() {

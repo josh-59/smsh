@@ -105,3 +105,36 @@ impl Sources {
         }
     }
 }
+
+
+
+// True if line is a complete logical line
+pub fn is_complete(rawline: &str) -> bool {
+    let mut single_quoted = false;
+    let mut double_quoted = false;
+    let mut escaped = false;
+
+    for ch in rawline.chars() {
+        if escaped {
+            escaped = false;
+        } else {
+            match ch {
+                '\\' => {
+                    escaped = true;
+                }
+                '\'' => {
+                    single_quoted = !single_quoted;
+                }
+                '\"' => {
+                    double_quoted = !double_quoted;
+                }
+                _ => {
+                    continue;
+                }
+            }
+        }
+    }
+
+    !(single_quoted || double_quoted || escaped)
+}
+
