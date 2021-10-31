@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 use crate::line::Line;
-use super::Source;
+use super::{Source, Prompt};
 
 // Used to push lines back onto the execution stack
 pub struct SubshellSource {
@@ -16,7 +16,7 @@ impl SubshellSource {
 }
 
 impl Source for SubshellSource {
-    fn get_line(&mut self, _prompt: Option<String>) -> Result<Option<Line>> {
+    fn get_line(&mut self, _prompt: Prompt) -> Result<Option<Line>> {
         if self.line_num == self.lines.len() {
             Ok(None)
         } else {

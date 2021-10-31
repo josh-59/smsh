@@ -1,7 +1,9 @@
 use anyhow::Result;
+use nix::unistd::getuid;
+
 use std::io::{self, Stdin, Write};
 
-use super::{Source, SourceKind, is_complete};
+use super::{Source, SourceKind, Prompt, is_complete};
 use crate::line::Line;
 
 pub struct Tty {
@@ -18,7 +20,7 @@ impl Tty {
     }
 
     // Used to complete logical lines when they transcend physical lines
-    pub fn get_secondary_line(&mut self) -> Result<Option<String>> {
+    fn get_secondary_line(&mut self) -> Result<Option<String>> {
         let mut buffer = String::new();
 
         print!("> ");
@@ -32,15 +34,25 @@ impl Tty {
             Ok(Some(buffer))
         }
     }
+
+    fn simple_prompt() -> String {
+        if getuid().is_root() {
+            "# ".to_string()
+        } else {
+            "$ ".to_string()
+        }
+    }
 }
 
 impl Source for Tty {
-
-    fn get_line(&mut self, prompt: Option<String>) -> Result<Option<Line>> {
-        let prompt = if let Some(p) = prompt {
-            p
-        } else {
-            "> ".to_string()
+    fn get_line(&mut self, prompt: Prompt) -> Result<Option<Line>> {
+        let prompt = match prompt {
+            Prompt::MainLoop => {
+                Tty::simple_prompt()
+            }
+            Prompt::Block => {
+                "> ".to_string()
+            }
         };
 
         let mut buffer = String::new();

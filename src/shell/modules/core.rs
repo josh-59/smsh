@@ -1,5 +1,6 @@
 use crate::shell::Shell;
 use crate::sources::user_function::UserFunction;
+use crate::sources::Prompt;
 use crate::line::Line;
 
 use anyhow::{anyhow, Result};
@@ -149,7 +150,7 @@ pub fn r#if(smsh: &mut Shell, line: &mut Line) -> Result<()> {
     
     let mut conditionals = vec![conditional];
 
-    while let Some(line) = smsh.get_line(None)? {
+    while let Some(line) = smsh.get_line(Prompt::Block)? {
         if line.is_elif() {
             let conditional = line.get_conditional();
             conditionals.push(conditional);
@@ -162,7 +163,7 @@ pub fn r#if(smsh: &mut Shell, line: &mut Line) -> Result<()> {
         }
     }
 
-    let else_body = if let Some(line) = smsh.get_line(None)? {
+    let else_body = if let Some(line) = smsh.get_line(Prompt::Block)? {
         if line.is_else() {
             Some(smsh.get_block(line.source(), line.indentation() + 1)?)
         }

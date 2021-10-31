@@ -1,5 +1,5 @@
 use crate::line::Line;
-use crate::sources::{Sources, SourceKind, user_function::UserFunction, Source};
+use crate::sources::{Sources, SourceKind, Prompt, user_function::UserFunction, Source};
 use anyhow::{anyhow, Result};
 use nix::unistd::{self, fork, ForkResult, getuid};
 use nix::sys::wait::{wait, WaitStatus};
@@ -30,7 +30,7 @@ impl Shell {
     }
 
     pub fn run(&mut self) -> Result<()> {
-        while let Some(mut line) = self.get_line(Some(self.get_prompt()))? {
+        while let Some(mut line) = self.get_line(Prompt::MainLoop)? {
             line.expand(self)?;
             line.separate()?;
             line.select()?;
@@ -40,7 +40,7 @@ impl Shell {
         Ok(())
     }
 
-    fn get_line(&mut self, prompt: Option<String>) -> Result<Option<Line>> {
+    fn get_line(&mut self, prompt: Prompt) -> Result<Option<Line>> {
         self.sources.get_line(prompt)
     }
 
@@ -96,18 +96,9 @@ impl Shell {
         &self.state
     }
 
-    fn get_prompt(&self) -> String {
-        if getuid().is_root() {
-            "# ".to_string()
-        } else {
-            "$ ".to_string()
-        }
-    }
-
     pub fn set_rv(&mut self, rv: i32) {
         self.state.rv = rv;
     }
-
 
     // Executes `line` in a subshell environment, waits for it
     // and collects its return value.

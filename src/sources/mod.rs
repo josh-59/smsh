@@ -27,8 +27,14 @@ pub enum SourceKind {
     Script(String),       // String contains script pathname
 }
 
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+pub enum Prompt {
+    Block,
+    MainLoop,
+}
+
 pub trait Source {
-    fn get_line(&mut self, prompt: Option<String>) -> Result<Option<Line>>;
+    fn get_line(&mut self, prompt: Prompt) -> Result<Option<Line>>;
     fn is_tty(&self) -> bool; 
     fn is_faux_source(&self) -> bool;
     fn print_error(&mut self) -> Result<()>;
@@ -44,13 +50,13 @@ impl Sources {
         Sources { sources: vec![], buffer: vec![] }
     }
 
-    pub fn get_line(&mut self, prompt: Option<String> ) -> Result<Option<Line>> {
+    pub fn get_line(&mut self, prompt: Prompt ) -> Result<Option<Line>> {
         if let Some(line) = self.buffer.pop() {
             return Ok(Some(line));
         }
 
         if let Some(mut source) = self.sources.pop() {
-            if let Some(line) = source.get_line(prompt.clone())? {
+            if let Some(line) = source.get_line(prompt)? {
                 self.sources.push(source);
                 Ok(Some(line))
             } else {
@@ -67,7 +73,7 @@ impl Sources {
         let mut lines = Vec::<Line>::new();
 
         if let Some(mut source) = self.sources.pop() {
-            while let Some(line) = source.get_line(None)? {
+            while let Some(line) = source.get_line(Prompt::Block)? {
                 if *line.source() == *source_kind && line.indentation() == indent {
                     lines.push(line);
             } else {
