@@ -104,16 +104,13 @@ impl Line {
     }
 
     pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
-        let strs: Vec<&str> = self.words.iter()
-            .filter_map(|x| {
-                if x.is_empty() {
-                    None
-                }
-                else {
-                    Some(x.text())
-                }
-            })
-            .collect();
+        let mut strs = Vec::<&str>::new();
+
+        for word in &self.words {
+            for s in word.separated_text() {
+                strs.push(s);
+            }
+        }
 
         if strs.is_empty() {
             return Ok(());

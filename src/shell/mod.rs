@@ -104,6 +104,10 @@ impl Shell {
         }
     }
 
+    pub fn set_rv(&mut self, rv: i32) {
+        self.state.rv = rv;
+    }
+
 
     // Executes `line` in a subshell environment, waits for it
     // and collects its return value.

@@ -3,24 +3,28 @@ use crate::sources::user_function::UserFunction;
 use anyhow::{anyhow, Result};
 use std::env;
 
-use super::{load_module, unload_module, Module};
+use super::{load_module, Module};
 
-pub fn chdir(_smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
+pub fn chdir(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
     if args.len() == 1 {
         if let Some(dir) = env::var_os("HOME") {
             env::set_current_dir(dir)?;
+            smsh.set_rv(0);
         }
     } else if args.len() == 2 {
         env::set_current_dir(&args[1])?;
+        smsh.set_rv(0);
     } else {
+        smsh.set_rv(0);
         return Err(anyhow!("cd: Too many arguments"));
     }
 
     Ok(())
 }
 
-pub fn exit(_smsh: &mut Shell, _args: Vec<&str>) -> Result<()> {
-    std::process::exit(0);
+pub fn exit(smsh: &mut Shell, _args: Vec<&str>) -> Result<()> {
+    smsh.set_rv(0);
+    std::process::exit(smsh.state().rv);
 }
 
 pub fn lm_builtin(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
@@ -28,12 +32,17 @@ pub fn lm_builtin(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
         match args[1] {
             "core" => {
                 load_module(smsh, Module::Core);
+                smsh.set_rv(0);
                 Ok(())
             }
-            _ => Err(anyhow!("Unrecognized module {}", args[1])),
+            _ => {
+                smsh.set_rv(1);
+                Err(anyhow!("Unrecognized module {}", args[1]))
+            }
         }
     } else {
-        Ok(())
+        smsh.set_rv(2);
+        Err(anyhow!("Improper invocation of self::load_module"))
     }
 }
 
@@ -41,18 +50,23 @@ pub fn ulm_builtin(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
     if args.len() == 2 {
         match args[1] {
             "core" => {
-                unload_module(smsh, Module::Core)?;
-                Ok(())
+                smsh.set_rv(3);
+                Err(anyhow!("Unable to unload smsh core module!"))
             }
-            _ => Err(anyhow!("Unrecognized module {}", args[1])),
+            _ => {
+                smsh.set_rv(2);
+                Err(anyhow!("Unrecognized module {}", args[1]))
+            }
         }
     } else {
-        Ok(())
+        smsh.set_rv(1);
+        Err(anyhow!("Improper invocation of self::unload_module"))
     }
 }
 
 pub fn r#let(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
     if args.len() < 4 || args[2] != "=" {
+        smsh.set_rv(1);
         return Err(anyhow!("Improper invocation of `let`"));
     }
 
@@ -68,6 +82,7 @@ pub fn r#let(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
 
     smsh.insert_user_variable(key, value);
 
+    smsh.set_rv(0);
     Ok(())
 }
 
@@ -75,6 +90,7 @@ pub fn r#let(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
 // a new function with it, and save it into the shell
 pub fn r#fn(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
     if args.len() != 2 || !args[1].ends_with(':') {
+        smsh.set_rv(1);
         return Err(anyhow!("Improper invocation of `fn`"));
     }
 
@@ -87,6 +103,7 @@ pub fn r#fn(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
 
     smsh.insert_user_function(func);
 
+    smsh.set_rv(0);
     Ok(())
 }
 
@@ -95,6 +112,7 @@ pub fn r#fn(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
 // afterwards.
 pub fn r#if(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
     if args.len() < 2 || !args[args.len() - 1].ends_with(':') {
+        smsh.set_rv(1);
         return Err(anyhow!("if: Improperly formed conditional"));
     }
 
@@ -157,5 +175,6 @@ pub fn r#if(smsh: &mut Shell, args: Vec<&str>) -> Result<()> {
         }
     }
 
+    smsh.set_rv(0);
     Ok(())
 }

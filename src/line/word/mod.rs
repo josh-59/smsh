@@ -47,7 +47,7 @@ pub struct Word {
     expansion: Expansion,
     separator: Separator,
     selection: Selection,
-    pub separated_text: Vec<String>,
+    separated_text: Vec<String>,
 }
 
 // A word is a single logical unit of input text.
@@ -93,6 +93,10 @@ impl Word {
         };
 
         Ok(word)
+    }
+
+    pub fn separated_text(&self) -> &Vec<String> {
+        &self.separated_text
     }
 
     // Replaces self.text with expanded value

@@ -61,7 +61,7 @@ impl Sources {
         }
     }
 
-    // Captures one block from a signle source
+    // Captures one block from a single source
     // Blocks are delimited by a single blank line.
     pub fn get_block(&mut self) -> Result<Vec<Line>> {
         let mut lines = Vec::<Line>::new();
