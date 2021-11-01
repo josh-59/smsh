@@ -3,7 +3,7 @@ use std::fmt;
 
 use crate::shell::Shell;
 use crate::sources::SourceKind;
-use crate::constructs::r#if;
+use crate::constructs::{r#if, r#fn};
 
 mod word;
 use word::Word;
@@ -16,6 +16,14 @@ pub enum LineKind {
     If,
     Elif,
     Else,
+    FunctionDefinition,
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct LineIdentifier {
+    source: SourceKind,
+    line_num: usize,
+    indentation: usize,
 }
 
 // Represents a logical line given to the shell.
@@ -26,9 +34,7 @@ pub enum LineKind {
 pub struct Line {
     rawline: String,
     line_kind: LineKind,
-    indentation: usize,
-    source: SourceKind,
-    line_num: usize,
+    line_identifier: LineIdentifier,
     words: Vec<Word>,
 }
 
@@ -39,6 +45,12 @@ impl Line {
         while rawline.ends_with('\n') {
             rawline.pop();
         }
+
+        let line_identifier = LineIdentifier {
+            source,
+            line_num, 
+            indentation,
+        };
 
         let line_kind = get_line_kind(rawline.as_str())?;
 
@@ -53,9 +65,7 @@ impl Line {
         Ok( Line {
             rawline,
             line_kind,
-            indentation,
-            source,
-            line_num,
+            line_identifier,
             words,
         } )
     }
@@ -78,7 +88,7 @@ impl Line {
     pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
         match &self.line_kind {
             LineKind::Normal => {
-                let mut pipeline = Pipeline::new(self)?;
+                let mut pipeline = Pipeline::new(self, smsh)?;
 
                 pipeline.execute(smsh)
             }
@@ -91,6 +101,9 @@ impl Line {
             LineKind::Else => {
                 Err(anyhow!("if: `else` statement must follow `if`"))
             }
+            LineKind::FunctionDefinition => {
+                r#fn(smsh, self)
+            }
         }
     }
 
@@ -100,6 +113,10 @@ impl Line {
         }
 
         Ok(())
+    }
+
+    pub fn identifier(&self) -> &LineIdentifier {
+        &self.line_identifier
     }
 
 
@@ -123,7 +140,7 @@ impl Line {
 
 
     pub fn indentation(&self) -> usize {
-        self.indentation
+        self.line_identifier.indentation
     }
 
     pub fn is_if(&self) -> bool {
@@ -139,7 +156,7 @@ impl Line {
     }
 
     pub fn source(&self) -> &SourceKind {
-        &self.source
+        &self.line_identifier.source
     }
 
     pub fn separate(&mut self) -> Result<()> {
@@ -169,29 +186,29 @@ impl Line {
 
 impl fmt::Display for Line {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.source {
+        match &self.line_identifier.source {
             SourceKind::Tty => {
-                write!(f, "\tTTY line {}: {}", self.line_num, self.rawline)
+                write!(f, "\tTTY line {}: {}", self.line_identifier.line_num, self.rawline)
             }
             SourceKind::Subshell => {
                 write!(
                     f,
                     "\tSubshell Expansion line {}: {}",
-                    self.line_num, self.rawline
+                    self.line_identifier.line_num, self.rawline
                 )
             }
             SourceKind::UserFunction(s) => {
                 write!(
                     f,
                     "\tFunction `{}` line {}: {}",
-                    s, self.line_num, self.rawline
+                    s, self.line_identifier.line_num, self.rawline
                 )
             }
             SourceKind::Script(s) => {
                 write!(
                     f,
                     "\tScript `{}` line {}: {}",
-                    s, self.line_num, self.rawline
+                    s, self.line_identifier.line_num, self.rawline
                 )
             }
         }
@@ -213,6 +230,12 @@ fn get_line_kind(rawline: &str) -> Result<LineKind> {
         }
     } else if rawline == "else:" {
         Ok(LineKind::Else)
+    } else if rawline.starts_with("fn") {
+        if rawline.ends_with(":") {
+            Ok(LineKind::FunctionDefinition)
+        } else {
+            Err(anyhow!("Improperly formed function definition"))
+        }
     } else {
         Ok(LineKind::Normal)
     }

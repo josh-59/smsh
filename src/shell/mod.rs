@@ -10,7 +10,7 @@ use std::process::exit;
 
 mod state;
 use state::State;
-mod modules;
+pub mod modules;
 use modules::Builtin;
 mod init;
 use init::init;
@@ -132,42 +132,24 @@ impl Shell {
     }
 
     pub fn execute_external_command(&mut self, args: Vec<&str>) -> Result<()> {
-        match unsafe { fork()? } {
-            ForkResult::Parent { child: _, .. } => {
-                match wait()? {
-                    WaitStatus::Exited(_pid, exit_status) => {
-                        self.state.rv = exit_status;
-                        Ok(())
-                    }
-                    _ => {
-                        Ok(())
-                    }
-                }
-            }
-            ForkResult::Child => {
-                if args.len() == 0 {
-                    exit(0);
-                }
+        let mut argv = Vec::<CString>::new();
 
-                let mut argv = vec![];
-                for arg in args {
-                    let arg = match CString::new(arg) {
-                        Ok(x) => {
-                            x
-                        }
-                        Err(e) => {
-                            eprintln!("smsh (child): {}", e);
-                            exit(1);
-                        }
-                    };
-
-                    argv.push(arg);
+        for arg in args {
+            let arg = match CString::new(arg) {
+                Ok(x) => {
+                     x
                 }
+                Err(e) => {
+                    eprintln!("smsh (child): {}", e);
+                    exit(1);
+                }
+            };
 
-                let _ = unistd::execvp(&argv[0], &argv);
-                exit(1);
-            }
+            argv.push(arg);
         }
+
+        let _ = unistd::execvp(&argv[0], &argv);
+        Ok(())
     }
 }
 

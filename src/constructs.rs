@@ -1,6 +1,7 @@
 use crate::shell::Shell;
 use crate::sources::Prompt;
 use crate::line::Line;
+use crate::sources::user_function::UserFunction;
 
 use anyhow::{anyhow, Result};
 
@@ -61,5 +62,29 @@ pub fn r#if(smsh: &mut Shell, line: &mut Line) -> Result<()> {
     }
 
     smsh.set_rv(0);
+    Ok(())
+}
+
+// Collect a block of input from the shell, create a
+// a new function with it, and save it into the shell
+pub fn r#fn(smsh: &mut Shell, line: &mut Line) -> Result<()> {
+    let argv = line.argv();
+
+    if argv.len() != 2 || !argv[1].ends_with(':') {
+        smsh.set_rv(-1);
+        return Err(anyhow!("Improper invocation of `fn`"));
+    }
+
+    let mut fn_name = argv.last().unwrap().to_string();
+    fn_name.pop();
+
+    let fn_body = smsh.get_block(line.source(), line.indentation() + 1)?
+        .iter().map(|x| x.text()).collect();
+
+    let func = UserFunction::new(fn_name, fn_body);
+
+    smsh.insert_user_function(func);
+
+    smsh.set_rv(-2);
     Ok(())
 }
