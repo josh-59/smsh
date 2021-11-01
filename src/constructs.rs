@@ -78,7 +78,7 @@ pub fn r#fn(smsh: &mut Shell, line: &mut Line) -> Result<()> {
 
     if argv.len() != 2 || !argv[1].ends_with(':') {
         smsh.set_rv(-1);
-        return Err(anyhow!("Improper invocation of `fn`"));
+        return Err(anyhow!("fn: Improper invocation of `fn`"));
     }
 
     let mut fn_name = argv.last().unwrap().to_string();

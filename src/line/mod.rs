@@ -112,6 +112,10 @@ impl Line {
     pub fn get_conditional(&self) -> Result<String> {
         let mut conditional = String::new();
 
+        if self.words.len() < 2 {
+            return Err(anyhow!("No conditional present"));
+        }
+
         for s in &self.words[1..] {
             conditional.push_str(s.text());
             conditional.push(' ');

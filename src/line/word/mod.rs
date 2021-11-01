@@ -117,37 +117,33 @@ impl Word {
         &self.selected_text
     }
 
-    // Reduces self.separated_text to selection desired
     pub fn select(&mut self) -> Result<()> {
-        if self.quote == Quote::Unquoted {
-            match &self.selection {
-                Selection::Index(n) => {
-                    if *n < self.separated_text.len() {
-                        let word = self.separated_text[*n].clone();
-                        self.selected_text.push(word);
-                    }
-                }
-                Selection::Slice(n, m) => {
-                    if self.separated_text.len() > 0 && *n < self.separated_text.len() {
-                        if *m > *n {
-                            let min = min(self.separated_text.len() - 1, *m);
-    
-                            for w in &self.separated_text[*n..min] {
-                                self.selected_text.push(w.to_string());
-                            }
-                        } else if *m == 0 {
-                            for w in &self.separated_text[*n..] {
-                                self.selected_text.push(w.to_string());
-                            }
-                        }
-                    } 
-                }
-                Selection::All => {
-                    self.selected_text = self.separated_text.clone();
+        match &self.selection {
+            Selection::Index(n) => {
+                if *n < self.separated_text.len() {
+                    let word = self.separated_text[*n].clone();
+                    self.selected_text.push(word);
                 }
             }
-        }
+            Selection::Slice(n, m) => {
+                if self.separated_text.len() > 0 && *n < self.separated_text.len() {
+                    if *m > *n {
+                        let min = min(self.separated_text.len() - 1, *m);
 
+                        for w in &self.separated_text[*n..min] {
+                            self.selected_text.push(w.to_string());
+                        }
+                    } else if *m == 0 {
+                        for w in &self.separated_text[*n..] {
+                            self.selected_text.push(w.to_string());
+                        }
+                    }
+                } 
+            }
+            Selection::All => {
+                self.selected_text = self.separated_text.clone();
+            }
+        }
         Ok(())
     }
 
