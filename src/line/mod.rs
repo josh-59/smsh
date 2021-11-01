@@ -38,6 +38,8 @@ impl Line {
             rawline.pop();
         }
 
+        let line_kind = get_line_kind(rawline.as_str())?;
+
         let mut words = Vec::<Word>::new();
 
         for word in get_words(rawline.as_str())? {
@@ -45,8 +47,6 @@ impl Line {
                 words.push(Word::new(word)?);
             }
         }
-
-        let line_kind = get_line_kind(&words);
 
         Ok( Line {
             rawline,
@@ -201,17 +201,23 @@ impl fmt::Display for Line {
     }
 }
 
-fn get_line_kind(words: &Vec<Word>) -> LineKind {
-    if words.len() == 0 {
-        LineKind::Normal
-    } else if words[0].text() == "if" {
-        LineKind::If
-    } else if words[0].text() == "elif" {
-        LineKind::Elif
-    } else if words[0].text() == "else:" {
-        LineKind::Else
+fn get_line_kind(rawline: &str) -> Result<LineKind> {
+    if rawline.starts_with("if") {
+        if rawline.ends_with(':') {
+            Ok(LineKind::If)
+        } else {
+            Err(anyhow!("Improperly formed if"))
+        }
+    } else if rawline.starts_with("elif") {
+        if rawline.ends_with(':') {
+            Ok(LineKind::Elif)
+        } else {
+            Err(anyhow!("Improperly formed elif"))
+        }
+    } else if rawline == "else:" {
+        Ok(LineKind::Else)
     } else {
-        LineKind::Normal
+        Ok(LineKind::Normal)
     }
 }
 
