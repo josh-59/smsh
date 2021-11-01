@@ -7,6 +7,8 @@ use crate::constructs::r#if;
 
 mod word;
 use word::Word;
+mod pipeline;
+use pipeline::Pipeline;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum LineKind {
@@ -58,54 +60,6 @@ impl Line {
         } )
     }
 
-    pub fn indentation(&self) -> usize {
-        self.indentation
-    }
-
-    pub fn is_if(&self) -> bool {
-        self.line_kind == LineKind::If
-    }
-
-    pub fn is_elif(&self) -> bool {
-        self.line_kind == LineKind::Elif
-    }
-
-    pub fn is_else(&self) -> bool {
-        self.line_kind == LineKind::Else
-    }
-
-    pub fn source(&self) -> &SourceKind {
-        &self.source
-    }
-
-    pub fn text(&self) -> String {
-        self.rawline.clone()
-    }
-
-    pub fn expand(&mut self, smsh: &mut Shell) -> Result<()> {
-        for word in &mut self.words {
-            word.expand(smsh)?;
-        }
-
-        Ok(())
-    }
-
-    pub fn separate(&mut self) -> Result<()> {
-        for word in &mut self.words {
-            word.separate()?;
-        }
-
-        Ok(())
-    }
-
-    pub fn select(&mut self) -> Result<()> {
-        for word in &mut self.words {
-            word.select()?;
-        }
-
-        Ok(())
-    }
-
     // TODO: Move this to PipeElem struct
     pub fn argv(&self) -> Vec<&str> {
         let mut strs = Vec::<&str>::new();
@@ -151,6 +105,15 @@ impl Line {
         }
     }
 
+    pub fn expand(&mut self, smsh: &mut Shell) -> Result<()> {
+        for word in &mut self.words {
+            word.expand(smsh)?;
+        }
+
+        Ok(())
+    }
+
+
     pub fn get_conditional(&self) -> Result<String> {
         let mut conditional = String::new();
 
@@ -167,6 +130,51 @@ impl Line {
         } else {
             Err(anyhow!("Improperly formed conditional: No trailing semicolon present"))
         }
+    }
+
+
+    pub fn indentation(&self) -> usize {
+        self.indentation
+    }
+
+    pub fn is_if(&self) -> bool {
+        self.line_kind == LineKind::If
+    }
+
+    pub fn is_elif(&self) -> bool {
+        self.line_kind == LineKind::Elif
+    }
+
+    pub fn is_else(&self) -> bool {
+        self.line_kind == LineKind::Else
+    }
+
+    pub fn source(&self) -> &SourceKind {
+        &self.source
+    }
+
+    pub fn separate(&mut self) -> Result<()> {
+        for word in &mut self.words {
+            word.separate()?;
+        }
+
+        Ok(())
+    }
+
+    pub fn select(&mut self) -> Result<()> {
+        for word in &mut self.words {
+            word.select()?;
+        }
+
+        Ok(())
+    }
+
+    pub fn text(&self) -> String {
+        self.rawline.clone()
+    }
+
+    pub fn words(&self) -> &Vec<Word> {
+        &self.words
     }
 }
 
