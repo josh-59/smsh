@@ -4,7 +4,7 @@ use nix::sys::wait::waitpid;
 
 use std::os::unix::io::RawFd;
 
-use super::{Line, LineIdentifier};
+use super::Line;
 use crate::Shell;
 use crate::sources::user_function::UserFunction;
 use crate::shell::modules::Builtin;
@@ -27,7 +27,7 @@ impl Pipeline {
 
         for word in line.words() {
             if word.is_pipe_operator() {
-                let elem = PipeElement::new(line.identifier().clone(), args, smsh)?;
+                let elem = PipeElement::new(args, smsh)?;
                 args = Vec::<String>::new();
                 elements.push(elem);
             } else {
@@ -40,7 +40,7 @@ impl Pipeline {
         }
 
         if args.len() > 0 {
-            let elem = PipeElement::new(line.identifier().clone(), args, smsh)?;
+            let elem = PipeElement::new(args, smsh)?;
             elements.push(elem);
         }
 
@@ -110,13 +110,12 @@ impl Pipeline {
 }
 
 pub struct PipeElement {
-    line_identifier: LineIdentifier,
     argv: Vec<String>,
     cmd_kind: CommandKind,
 }
 
 impl PipeElement {
-    pub fn new(line_identifier: LineIdentifier, argv: Vec<String>, smsh: &mut Shell) -> Result<Self> {
+    pub fn new(argv: Vec<String>, smsh: &mut Shell) -> Result<Self> {
         if argv.len() == 0 {
             return Err(anyhow!("Cannot create empty pipeline element"));
         }
@@ -129,7 +128,7 @@ impl PipeElement {
             CommandKind::ExternalCommand(argv[0].to_string())
         };
 
-        Ok(PipeElement{ line_identifier, argv, cmd_kind })
+        Ok(PipeElement{argv, cmd_kind })
     }
 
     pub fn argv(&self) -> Vec<&str> {

@@ -92,14 +92,8 @@ impl Line {
 
                 pipeline.execute(smsh)
             }
-            LineKind::If => {
+            LineKind::If | LineKind::Elif | LineKind::Else => {
                 r#if(smsh, self)
-            }
-            LineKind::Elif => {
-                Err(anyhow!("if: `elif` statements must follow `if`"))
-            }
-            LineKind::Else => {
-                Err(anyhow!("if: `else` statement must follow `if`"))
             }
             LineKind::FunctionDefinition => {
                 r#fn(smsh, self)
@@ -114,11 +108,6 @@ impl Line {
 
         Ok(())
     }
-
-    pub fn identifier(&self) -> &LineIdentifier {
-        &self.line_identifier
-    }
-
 
     pub fn get_conditional(&self) -> Result<String> {
         let mut conditional = String::new();

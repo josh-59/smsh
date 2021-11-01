@@ -6,9 +6,15 @@ use crate::sources::user_function::UserFunction;
 use anyhow::{anyhow, Result};
 
 pub fn r#if(smsh: &mut Shell, line: &mut Line) -> Result<()> {
-    if !line.is_if() {
+    if line.is_elif() {
         smsh.set_rv(1);
-        return Err(anyhow!("if: Improperly formed conditional"));
+        return Err(anyhow!("if: `elif` must follow `if`"));
+    } else if line.is_else() {
+        smsh.set_rv(1);
+        return Err(anyhow!("if: `else` must follow `if`"))
+    } else if !line.is_if() {
+        smsh.set_rv(1);
+        return Err(anyhow!("if: Improperly formed conditional"))
     }
 
     let conditional = line.get_conditional()?;
