@@ -234,6 +234,7 @@ mod test {
             separator: Separator::Whitespace,
             selection: Selection::All,
             separated_text: Vec::<String>::new(),
+            selected_text: Vec::<String>::new(),
         };
 
         assert_eq!(word, Word::new(cmd).unwrap());
@@ -250,6 +251,7 @@ mod test {
             separator: Separator::Whitespace,
             selection: Selection::All,
             separated_text: Vec::<String>::new(),
+            selected_text: Vec::<String>::new(),
         };
 
         assert_eq!(word, Word::new(cmd).unwrap());
@@ -266,6 +268,7 @@ mod test {
             separator: Separator::Whitespace,
             selection: Selection::All,
             separated_text: Vec::<String>::new(),
+            selected_text: Vec::<String>::new(),
         };
 
         assert_eq!(word, Word::new(cmd).unwrap());
@@ -282,6 +285,7 @@ mod test {
             separator: Separator::Whitespace,
             selection: Selection::All,
             separated_text: Vec::<String>::new(),
+            selected_text: Vec::<String>::new(),
         };
 
         assert_eq!(word, Word::new(cmd).unwrap());
@@ -298,6 +302,7 @@ mod test {
             separator: Separator::Whitespace,
             selection: Selection::Index(1),
             separated_text: Vec::<String>::new(),
+            selected_text: Vec::<String>::new(),
         };
 
         assert_eq!(word, Word::new(cmd).unwrap());
@@ -314,6 +319,7 @@ mod test {
             separator: Separator::Whitespace,
             selection: Selection::Slice(1, 0),
             separated_text: Vec::<String>::new(),
+            selected_text: Vec::<String>::new(),
         };
 
         assert_eq!(word, Word::new(cmd).unwrap());
@@ -330,6 +336,7 @@ mod test {
             separator: Separator::None,
             selection: Selection::All,
             separated_text: Vec::<String>::new(),
+            selected_text: Vec::<String>::new(),
         };
 
         assert_eq!(word, Word::new(cmd).unwrap());
@@ -396,7 +403,7 @@ mod test {
 
         let res = vec!["zero".to_string()];
 
-        assert_eq!(word.separated_text, res);
+        assert_eq!(word.selected_text(), &res);
     }
 
     #[test]
@@ -414,7 +421,7 @@ mod test {
 
         let res = vec!["two".to_string()];
 
-        assert_eq!(word.separated_text, res);
+        assert_eq!(word.selected_text(), &res);
     }
 
     #[test]
@@ -434,6 +441,6 @@ mod test {
                         "three".to_string(),
                         "four".to_string()];
 
-        assert_eq!(word.separated_text, res);
+        assert_eq!(word.selected_text(), &res);
     }
 }
