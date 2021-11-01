@@ -78,29 +78,18 @@ impl Line {
     pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
         match &self.line_kind {
             LineKind::Normal => {
-                let strs = self.argv();
-        
-                if strs.is_empty() {
-                    return Ok(());
-                }
-    
-                if let Some(f) = smsh.get_user_function(strs[0]) {
-                    smsh.push_source(f.build_source());
-                    Ok(())
-                } else if let Some(f) = smsh.get_builtin(strs[0]) {
-                    f(smsh, self)?;
-                    Ok(())
-                } else {
-                    smsh.execute_external_command(strs)?;
-                    Ok(())
-                }
+                let mut pipeline = Pipeline::new(self)?;
+
+                pipeline.execute(smsh)
             }
             LineKind::If => {
-                r#if(smsh, self)?;
-                Ok(())
+                r#if(smsh, self)
             }
-            _ => {
-                Ok(())
+            LineKind::Elif => {
+                Err(anyhow!("if: `elif` statements must follow `if`"))
+            }
+            LineKind::Else => {
+                Err(anyhow!("if: `else` statement must follow `if`"))
             }
         }
     }

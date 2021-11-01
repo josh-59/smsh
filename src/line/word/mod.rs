@@ -97,10 +97,6 @@ impl Word {
         Ok(word)
     }
 
-    pub fn selected_text(&self) -> &Vec<String> {
-        &self.selected_text
-    }
-
     // Replaces self.text with expanded value
     pub fn expand(&mut self, smsh: &mut Shell) -> Result<()> {
         match &self.quote {
@@ -113,8 +109,12 @@ impl Word {
         }
     }
 
-    pub fn text(&self) -> &str {
-        &self.text
+    pub fn is_pipe_operator(&self) -> bool {
+        self.selected_text.len() == 1 && self.selected_text[0] == "|"
+    }
+
+    pub fn selected_text(&self) -> &Vec<String> {
+        &self.selected_text
     }
 
     // Reduces self.separated_text to selection desired
@@ -184,6 +184,11 @@ impl Word {
             }
         }
     }
+
+    pub fn text(&self) -> &str {
+        &self.text
+    }
+
 }
 
 
