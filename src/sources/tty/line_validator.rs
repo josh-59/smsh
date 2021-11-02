@@ -6,10 +6,12 @@ impl Validator for SmshLineValidator {
     fn validate(&self, line: &str) -> ValidationResult {
         if contains_unmatched_quote(line) {
             ValidationResult::Incomplete
-        } else if is_unfinished_shell_construct(line) {
-            ValidationResult::Incomplete
-        } else if is_unfinished_block(line) {
-            ValidationResult::Incomplete
+        } else if is_shell_construct(line) {
+            if contains_finished_block(line) {
+                ValidationResult::Complete
+            } else {
+                ValidationResult::Incomplete
+            }
         } else {
             ValidationResult::Complete
         }
@@ -18,12 +20,12 @@ impl Validator for SmshLineValidator {
 
 // TODO: This should verify that the indentation is correct
 // (wrt leading indentation, if any)
-fn is_unfinished_block(line: &str) -> bool {
-    line.contains(":") && !line.ends_with("\n")
+fn contains_finished_block(line: &str) -> bool {
+    line.ends_with("\n")
 }
 
-fn is_unfinished_shell_construct(line: &str) -> bool {
-    line.ends_with(":")
+fn is_shell_construct(line: &str) -> bool {
+    line.ends_with(':') || line.contains(":\n")
 }
 
 fn contains_unmatched_quote(line: &str) -> bool {
