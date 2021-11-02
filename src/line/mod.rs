@@ -69,6 +69,10 @@ impl Line {
 
         let line_kind = get_line_kind(rawline.as_str())?;
 
+        if line_kind != LineKind::Normal {
+            rawline.pop(); // Remove trailing colon
+        }
+
         let mut words = Vec::<Word>::new();
 
         for word in get_words(rawline.as_str())? {
@@ -141,12 +145,7 @@ impl Line {
 
         conditional.pop();  // Remove trailing whitespace
 
-        if conditional.ends_with(':') {
-            conditional.pop();  // Remove trailing semicolon
-            Ok(conditional)
-        } else {
-            Err(anyhow!("Improperly formed conditional: No trailing semicolon present"))
-        }
+        Ok(conditional)
     }
 
     pub fn identifier(&self) -> LineIdentifier {

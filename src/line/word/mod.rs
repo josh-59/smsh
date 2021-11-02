@@ -170,8 +170,10 @@ impl Word {
                 Ok(())
             }
             Separator::Arbitrary(s) => {
-                self.separated_text = self.text.split(s)
-                    .map(|x| x.to_string()).collect();
+                for x in self.text.split(s) {
+                    self.separated_text.push(x.to_string());
+                }
+
                 Ok(())
             }
             Separator::None => {
