@@ -18,6 +18,7 @@ pub mod script;
 pub mod tty;
 pub mod user_function;
 pub mod subshell;
+pub mod r#for;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum SourceKind {

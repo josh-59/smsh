@@ -3,7 +3,7 @@ use std::fmt;
 
 use crate::shell::Shell;
 use crate::sources::SourceKind;
-use crate::constructs::{r#if, r#fn};
+use crate::constructs::{r#if, r#fn, r#for};
 
 mod word;
 use word::Word;
@@ -17,6 +17,7 @@ pub enum LineKind {
     Elif,
     Else,
     FunctionDefinition,
+    For,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -24,6 +25,20 @@ pub struct LineIdentifier {
     source: SourceKind,
     line_num: usize,
     indentation: usize,
+}
+
+impl LineIdentifier {
+    pub fn source(&self) -> SourceKind {
+        self.source.clone()
+    }
+
+    pub fn line_num(&self) -> usize {
+        self.line_num
+    }
+
+    pub fn indentation(&self) -> usize {
+        self.indentation
+    }
 }
 
 // Represents a logical line given to the shell.
@@ -98,6 +113,9 @@ impl Line {
             LineKind::FunctionDefinition => {
                 r#fn(smsh, self)
             }
+            LineKind::For => {
+                r#for(smsh, self)
+            }
         }
     }
 
@@ -131,9 +149,12 @@ impl Line {
         }
     }
 
+    pub fn identifier(&self) -> LineIdentifier {
+        self.line_identifier.clone()
+    }
 
     pub fn indentation(&self) -> usize {
-        self.line_identifier.indentation
+        self.line_identifier.indentation()
     }
 
     pub fn is_if(&self) -> bool {
@@ -146,6 +167,10 @@ impl Line {
 
     pub fn is_else(&self) -> bool {
         self.line_kind == LineKind::Else
+    }
+
+    pub fn is_for(&self) -> bool {
+        self.line_kind == LineKind::For
     }
 
     pub fn source(&self) -> &SourceKind {
@@ -228,6 +253,12 @@ fn get_line_kind(rawline: &str) -> Result<LineKind> {
             Ok(LineKind::FunctionDefinition)
         } else {
             Err(anyhow!("Improperly formed function definition"))
+        }
+    } else if rawline.starts_with("for") {
+        if rawline.ends_with(":") {
+            Ok(LineKind::For)
+        } else {
+            Err(anyhow!("Improperly formed `for` construct"))
         }
     } else {
         Ok(LineKind::Normal)

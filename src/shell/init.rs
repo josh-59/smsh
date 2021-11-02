@@ -35,7 +35,7 @@ pub fn init() -> Shell {
 
     if smsh.state().is_interactive() {
         smsh.push_source(Tty::build_source());
-        push_interactive_init_script(&mut smsh);
+        //push_interactive_init_script(&mut smsh);
     }
 
     smsh
