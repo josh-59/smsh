@@ -53,15 +53,20 @@ impl Sources {
 
     pub fn get_line(&mut self, prompt: Prompt ) -> Result<Option<Line>> {
         if let Some(line) = self.buffer.pop() {
-            return Ok(Some(line));
-        }
-
-        if let Some(mut source) = self.sources.pop() {
-            if let Some(line) = source.get_line(prompt)? {
-                self.sources.push(source);
-                Ok(Some(line))
-            } else {
-                self.get_line(prompt)
+            Ok(Some(line))
+        } else if let Some(mut source) = self.sources.pop() {
+            match source.get_line(prompt) { 
+                Ok(Some(line)) => {
+                    self.sources.push(source);
+                    Ok(Some(line))
+                }
+                Ok(None) => {
+                    self.get_line(prompt)
+                }
+                Err(e) => {
+                    self.sources.push(source);
+                    Err(e)
+                }
             }
         } else {
             Ok(None)
