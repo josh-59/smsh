@@ -12,7 +12,6 @@ pub mod tty;
 pub mod user_function;
 pub mod subshell;
 pub mod r#for;
-pub mod line_validator;
 
 // Used in Line struct to identify source
 #[derive(PartialEq, Eq, Clone, Debug)]

@@ -255,7 +255,7 @@ fn get_line_kind(rawline: &str) -> Result<LineKind> {
         if rawline.ends_with(":") {
             Ok(LineKind::For)
         } else {
-            Err(anyhow!("Improperly formed `for` construct"))
+            Err(anyhow!("Improperly formed `for` construct\n{}", rawline))
         }
     } else {
         Ok(LineKind::Normal)
