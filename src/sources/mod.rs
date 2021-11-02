@@ -1,15 +1,8 @@
-// TODO: Get rid of 'BufferSource altogether'.
-//       It clutters up the code and also clutters up runtime,
-//       making debugging more difficult.
-//       Should instead have a function, 
-//       'push_back(&mut self, line: Line)'
-//       defined in Source.
+// TODO:
+//      Implement Display for each Source, so that backtrace can
+//      be neater
 //
-//       Create proper Subshell Source for subshell expansion
-//
-//       Implement Display for each Source, so that backtrace can
-//       be neater
-//
+//      Sources::sources could be a vec of tuples (Box<dyn Source>, SourceKind)
 use anyhow::Result;
 
 use super::line::Line;
@@ -19,7 +12,9 @@ pub mod tty;
 pub mod user_function;
 pub mod subshell;
 pub mod r#for;
+pub mod line_validator;
 
+// Used in Line struct to identify source
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum SourceKind {
     Tty,
@@ -126,36 +121,3 @@ impl Sources {
         }
     }
 }
-
-
-
-// True if line is a complete logical line
-pub fn is_complete(rawline: &str) -> bool {
-    let mut single_quoted = false;
-    let mut double_quoted = false;
-    let mut escaped = false;
-
-    for ch in rawline.chars() {
-        if escaped {
-            escaped = false;
-        } else {
-            match ch {
-                '\\' => {
-                    escaped = true;
-                }
-                '\'' => {
-                    single_quoted = !single_quoted;
-                }
-                '\"' => {
-                    double_quoted = !double_quoted;
-                }
-                _ => {
-                    continue;
-                }
-            }
-        }
-    }
-
-    !(single_quoted || double_quoted || escaped)
-}
-

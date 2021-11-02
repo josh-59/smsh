@@ -4,7 +4,7 @@ use std::boxed::Box;
 use anyhow::{anyhow, Result};
 use reedline::{DefaultPrompt, Reedline, Signal, Prompt as ReedlinePrompt, PromptEditMode, PromptHistorySearch};
 
-use super::{Source, SourceKind, Prompt, is_complete};
+use super::{Source, SourceKind, Prompt, line_validator::SmshLineValidator};
 use crate::line::Line;
 
 pub struct Tty {
@@ -15,25 +15,10 @@ pub struct Tty {
 
 impl Tty {
     pub fn build_source() -> Result<Box<dyn Source>> {
-        let line_editor = Reedline::create()?;
+        let line_editor = Reedline::create()?
+            .with_validator(Box::new(SmshLineValidator));
 
         Ok(Box::new(Tty { line_editor, line_num: 0, last_line: None}))
-    }
-
-    pub fn get_secondary_line(&mut self) -> Result<String> {
-        let sig = self.line_editor.read_line(&BlockPrompt)?;
-
-        match sig {
-            Signal::Success(buffer) => {
-                Ok(buffer)
-            }
-            Signal::CtrlD => {
-                Err(anyhow!("Unexpected EOF"))
-            }
-            _ => {
-                Err(anyhow!("reedline: Unexpected input"))
-            }
-        }
     }
 }
 
@@ -52,12 +37,7 @@ impl Source for Tty {
 
         match sig {
             // `buffer` does not contain trailing newline.
-            Signal::Success(mut buffer) => {
-                while !is_complete(buffer.as_str()) {
-                    buffer.push('\n');
-                    buffer.push_str(self.get_secondary_line()?.as_str());
-                }
-
+            Signal::Success(buffer) => {
                 self.line_num += 1;
                 let line= Line::new(buffer, self.line_num, SourceKind::Tty)?;
                 self.last_line = Some(line.clone());
