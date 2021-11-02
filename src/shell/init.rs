@@ -34,7 +34,8 @@ pub fn init() -> Shell {
     load_module(&mut smsh, Module::Core);
 
     if smsh.state().is_interactive() {
-        smsh.push_source(Tty::build_source());
+        // Use of `unwrap` here is NOT ok
+        smsh.push_source(Tty::build_source().unwrap());
         push_interactive_init_script(&mut smsh);
     }
 

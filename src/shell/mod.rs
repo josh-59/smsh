@@ -29,7 +29,7 @@ impl Shell {
     }
 
     pub fn run(&mut self) -> Result<()> {
-        while let Some(mut line) = self.get_line(Prompt::MainLoop)? {
+        while let Some(mut line) = self.get_line(Prompt::Normal)? {
             line.expand(self)?;
             line.separate()?;
             line.select()?;

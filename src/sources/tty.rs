@@ -1,90 +1,74 @@
-use anyhow::Result;
-use nix::unistd::getuid;
+use std::borrow::Cow;
+use std::boxed::Box;
 
-use std::io::{self, Stdin, Write};
+use anyhow::{anyhow, Result};
+use reedline::{DefaultPrompt, Reedline, Signal, Prompt as ReedlinePrompt, PromptEditMode, PromptHistorySearch};
 
 use super::{Source, SourceKind, Prompt, is_complete};
 use crate::line::Line;
 
 pub struct Tty {
-    stdin: Stdin,
+    line_editor: Reedline,
     line_num: usize,
     last_line: Option<Line>
 }
 
 impl Tty {
-    pub fn build_source() -> Box<dyn Source> {
-        let stdin = io::stdin();
+    pub fn build_source() -> Result<Box<dyn Source>> {
+        let line_editor = Reedline::create()?;
 
-        Box::new(Tty { stdin, line_num: 0, last_line: None})
+        Ok(Box::new(Tty { line_editor, line_num: 0, last_line: None}))
     }
 
-    // Used to complete logical lines when they transcend physical lines
-    fn get_secondary_line(&mut self) -> Result<Option<String>> {
-        let mut buffer = String::new();
+    pub fn get_secondary_line(&mut self) -> Result<String> {
+        let sig = self.line_editor.read_line(&BlockPrompt)?;
 
-        print!("> ");
-        io::stdout().flush()?;
-
-        let num_bytes_read = self.stdin.read_line(&mut buffer)?;
-
-        if num_bytes_read == 0 {
-            Ok(None)
-        } else {
-            Ok(Some(buffer))
-        }
-    }
-
-    fn simple_prompt() -> String {
-        if getuid().is_root() {
-            "# ".to_string()
-        } else {
-            "$ ".to_string()
+        match sig {
+            Signal::Success(buffer) => {
+                Ok(buffer)
+            }
+            Signal::CtrlD => {
+                Err(anyhow!("Unexpected EOF"))
+            }
+            _ => {
+                Err(anyhow!("reedline: Unexpected input"))
+            }
         }
     }
 }
 
+
 impl Source for Tty {
     fn get_line(&mut self, prompt: Prompt) -> Result<Option<Line>> {
-        let prompt = match prompt {
-            Prompt::MainLoop => {
-                Tty::simple_prompt()
+
+        let sig = match prompt {
+            Prompt::Normal => {
+                self.line_editor.read_line(&DefaultPrompt::default())?
             }
             Prompt::Block => {
-                "> ".to_string()
+                self.line_editor.read_line(&BlockPrompt)?
             }
         };
 
-        let mut buffer = String::new();
-
-        print!("{}", prompt);
-        io::stdout().flush()?;
-
-        // Buffer contains newline
-        let num_bytes_read = self.stdin.read_line(&mut buffer)?;
-
-        if num_bytes_read == 0 {
-            Ok(None) // EOF was found
-        } else {
-            self.line_num += 1;
-
-            while !is_complete(buffer.as_str()) {
-                match self.get_secondary_line()? {
-                    Some(line_addendum) => {
-                        buffer.push_str(line_addendum.as_str());
-                    }
-                    None => {
-                        eprintln!("smsh: Unexpected EOF");
-                        return Ok(Some(Line::new("".to_string(), self.line_num, SourceKind::Tty)?));
-                    }
+        match sig {
+            // `buffer` does not contain trailing newline.
+            Signal::Success(mut buffer) => {
+                while !is_complete(buffer.as_str()) {
+                    buffer.push('\n');
+                    buffer.push_str(self.get_secondary_line()?.as_str());
                 }
+
+                self.line_num += 1;
+                let line= Line::new(buffer, self.line_num, SourceKind::Tty)?;
+                self.last_line = Some(line.clone());
+                Ok(Some(line))
             }
-
-            let line = Line::new(buffer, self.line_num, SourceKind::Tty)?;
-
-            self.last_line = Some(line.clone());
-
-            Ok(Some(line))
+            Signal::CtrlD => {
+                Ok(None)
+            }
+            _ => {
+                Err(anyhow!("reedline: Unexpected input"))
+            }
         }
     }
 
@@ -102,5 +86,27 @@ impl Source for Tty {
         }
 
         Ok(())
+    }
+}
+
+struct BlockPrompt;
+
+impl ReedlinePrompt for BlockPrompt {
+    fn render_prompt(&self, _screen_width: usize) -> Cow<'_, str> {
+        let prompt_string = "> ".to_string();
+        Cow::Owned(prompt_string)
+    }
+
+    fn render_prompt_indicator(&self, _prompt_mode: PromptEditMode) -> Cow<'_, str> {
+        let prompt_string = "".to_string();
+        Cow::Owned(prompt_string)
+    }
+    fn render_prompt_multiline_indicator(&self) -> Cow<'_, str> {
+        let prompt_string = "> ".to_string();
+        Cow::Owned(prompt_string)
+    }
+    fn render_prompt_history_search_indicator(&self, _history_search: PromptHistorySearch) -> Cow<'_, str> {
+        let prompt_string = "> ".to_string();
+        Cow::Owned(prompt_string)
     }
 }

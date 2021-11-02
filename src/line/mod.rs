@@ -91,7 +91,7 @@ impl Line {
         } )
     }
 
-    // TODO: Move this to PipeElem struct
+    // Shell constructs use this
     pub fn argv(&self) -> Vec<&str> {
         let mut strs = Vec::<&str>::new();
 

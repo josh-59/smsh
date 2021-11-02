@@ -30,8 +30,8 @@ pub enum SourceKind {
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum Prompt {
+    Normal,
     Block,
-    MainLoop,
 }
 
 pub trait Source {
