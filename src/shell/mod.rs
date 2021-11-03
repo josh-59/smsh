@@ -1,5 +1,5 @@
 use crate::line::Line;
-use crate::sources::{Sources, SourceKind, Prompt, user_function::UserFunction, Source};
+use crate::sources::{Sources, SourceKind, user_function::UserFunction, Source};
 use anyhow::{anyhow, Result};
 use nix::unistd::{self, fork, ForkResult};
 use nix::sys::wait::{wait, WaitStatus};
@@ -29,7 +29,7 @@ impl Shell {
     }
 
     pub fn run(&mut self) -> Result<()> {
-        while let Some(mut line) = self.get_line(Prompt::Normal)? {
+        while let Some(mut line) = self.get_line()? {
             line.expand(self)?;
             line.separate()?;
             line.select()?;
@@ -39,8 +39,8 @@ impl Shell {
         Ok(())
     }
 
-    pub fn get_line(&mut self, prompt: Prompt) -> Result<Option<Line>> {
-        self.sources.get_line(prompt)
+    pub fn get_line(&mut self) -> Result<Option<Line>> {
+        self.sources.get_line()
     }
 
     pub fn get_block(&mut self, source_kind: &SourceKind, indent: usize) -> Result<Vec<Line>> {

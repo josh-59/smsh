@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use super::{Source, Prompt};
+use super::Source;
 use crate::line::{Line, LineIdentifier};
 
 #[derive(Clone)]
@@ -31,7 +31,7 @@ impl For {
 }
 
 impl Source for For {
-    fn get_line(&mut self, _prompt: Prompt) -> Result<Option<Line>> {
+    fn get_line(&mut self) -> Result<Option<Line>> {
 
         // At the top of each loop, execute let statement
         if self.line_num == 0 { 

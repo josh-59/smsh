@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use super::{Source, SourceKind, Prompt};
+use super::{Source, SourceKind};
 use crate::line::Line;
 
 #[derive(Clone)]
@@ -29,7 +29,7 @@ impl UserFunction {
 }
 
 impl Source for UserFunction {
-    fn get_line(&mut self, _prompt: Prompt) -> Result<Option<Line>> {
+    fn get_line(&mut self) -> Result<Option<Line>> {
         if self.line_num == self.fn_body.len() {
             Ok(None)
         } else {

@@ -6,7 +6,7 @@ use anyhow::{anyhow, Result};
 use reedline::{DefaultPrompt, Reedline, Signal, Prompt as ReedlinePrompt, PromptEditMode, PromptHistorySearch};
 
 use crate::line::Line;
-use super::{Source, SourceKind, Prompt};
+use super::{Source, SourceKind};
 
 mod line_validator;
 use line_validator::SmshLineValidator;
@@ -21,7 +21,8 @@ pub struct Tty {
 impl Tty {
     pub fn build_source() -> Result<Box<dyn Source>> {
         let line_editor = Reedline::create()?
-            .with_validator(Box::new(SmshLineValidator));
+            .with_validator(Box::new(SmshLineValidator))
+            .without_repaint();
 
         Ok(Box::new(Tty { line_editor, line_num: 0, last_line: None, buffer: VecDeque::<Line>::new()}))
     }
@@ -29,22 +30,13 @@ impl Tty {
 
 
 impl Source for Tty {
-    fn get_line(&mut self, prompt: Prompt) -> Result<Option<Line>> {
+    fn get_line(&mut self) -> Result<Option<Line>> {
 
         if let Some(line) = self.buffer.pop_front() {
             return Ok(Some(line));
         }
 
-        let sig = match prompt {
-            Prompt::Normal => {
-                self.line_editor.read_line(&DefaultPrompt::default())?
-            }
-            Prompt::Block => {
-                self.line_editor.read_line(&BlockPrompt)?
-            }
-        };
-
-        match sig {
+        match self.line_editor.read_line(&DefaultPrompt::default())? {
             Signal::Success(buffer) => {
                 self.line_num += 1;
 

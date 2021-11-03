@@ -7,7 +7,7 @@ use nix::unistd::getuid;
 
 use std::io::{self, Stdin, Write};
 
-use super::{Source, SourceKind, Prompt, is_complete};
+use super::{Source, SourceKind, is_complete};
 use crate::line::Line;
 
 pub struct BasicTty {
