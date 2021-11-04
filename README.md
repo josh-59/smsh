@@ -1,21 +1,20 @@
-# smsh
 
-Status: Under Initial Development
+# Simple Shell
 
-`smsh` is a shell for the next generation.
-It is intended to be full-featured, reasonably fast, and most of all, easy to learn.
-It is also intended to be a replacement for Thompson-based shells.
-In order to justify that change, `smsh` offers a compellingly better 
-scripting language, interactive features unparalleled by current shells,
-and respect for the Unix philosophy.
-What Rust is to systems programming, `smsh` is intended to be to shells.
+A shell for the next generation.
 
-## Contributing
-Help wanted! 
-Anyone is welcome to contribute to the project.
-Ideas and suggestions are welcome as well.
+## Design Goals
 
-## To Do
-- For loop (Iterator)
-- While loop
-- use Reedline readline library
+
+__Simple__  Simple is good. Simple means easy to understand, easy to learn and easy
+to master.  Simple also means clean, and `smsh` takes after Python to offer a clean
+scripting language.
+
+__Fully Functional__ `smsh` does not compromise with respect to functionality.
+It is intended to be capable as a primary shell in both interactive and 
+non-interactive capacities.
+
+__Modern Interactive Experience__ Wrapping the simple and capable core is
+an interactive layer that takes the best-of from current shells and
+the Rust ecosystem.
+
