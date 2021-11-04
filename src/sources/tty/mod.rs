@@ -21,8 +21,7 @@ pub struct Tty {
 impl Tty {
     pub fn build_source() -> Result<Box<dyn Source>> {
         let line_editor = Reedline::create()?
-            .with_validator(Box::new(SmshLineValidator))
-            .without_repaint();
+            .with_validator(Box::new(SmshLineValidator));
 
         Ok(Box::new(Tty { line_editor, line_num: 0, last_line: None, buffer: VecDeque::<Line>::new()}))
     }
