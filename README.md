@@ -31,5 +31,3 @@ so this project will enter alpha when
 ## Contributing
 
 Contributions are always welcome!
-
-See `contributing.md` for ways to get started.
