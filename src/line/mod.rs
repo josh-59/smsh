@@ -48,37 +48,38 @@ impl LineIdentifier {
 // terminating a line with a pipe operator.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Line {
-    rawline: String,    // Does not include trailing semicolon in if, elif, else and for.
+    rawline: String,    // Does not include trailing newlines 
     line_kind: LineKind,
     line_identifier: LineIdentifier,
     words: Vec<Word>,
 }
 
 impl Line {
-    pub fn new(rawline: String, line_num: usize, source: SourceKind) -> Result<Line> {
-
-        // Build LineIdentifier
-        let (mut rawline, indentation) = get_indentation(rawline);
-        let line_identifier = LineIdentifier {
-            source,
-            line_num, 
-            indentation,
-        };
+    pub fn new(mut rawline: String, line_num: usize, source: SourceKind) -> Result<Line> {
 
         // Finalize rawline
         while rawline.ends_with('\n') {
             rawline.pop();
         }
 
-        let line_kind = get_line_kind(rawline.as_str())?;
+        // Build LineIdentifier
+        let (mut text, indentation) = get_indentation(rawline.clone());
+
+        let line_identifier = LineIdentifier {
+            source,
+            line_num, 
+            indentation,
+        };
+
+        let line_kind = get_line_kind(text.as_str())?;
 
         if line_kind != LineKind::Normal {
-            rawline.pop(); // Remove trailing colon
+            text.pop(); // Remove trailing colon
         }
 
         // Get words
         let mut words = Vec::<Word>::new();
-        for word in get_words(rawline.as_str())? {
+        for word in get_words(text.as_str())? {
             if !word.is_empty() {
                 words.push(Word::new(word)?);
             }
@@ -194,8 +195,8 @@ impl Line {
         Ok(())
     }
 
-    pub fn text(&self) -> String {
-        self.rawline.clone()
+    pub fn rawline(&self) -> &str {
+        &self.rawline
     }
 
     pub fn words(&self) -> &Vec<Word> {
