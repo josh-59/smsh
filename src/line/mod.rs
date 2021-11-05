@@ -48,7 +48,8 @@ impl LineIdentifier {
 // terminating a line with a pipe operator.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Line {
-    rawline: String,    // Does not include trailing newlines 
+    rawline: String,    // Original string passed to Line. 
+                        // Does not include trailing newlines 
     line_kind: LineKind,
     line_identifier: LineIdentifier,
     words: Vec<Word>,
@@ -64,15 +65,14 @@ impl Line {
 
         // Build LineIdentifier
         let (mut text, indentation) = get_indentation(rawline.clone());
-
         let line_identifier = LineIdentifier {
             source,
             line_num, 
             indentation,
         };
 
+        // Assert line type
         let line_kind = get_line_kind(text.as_str())?;
-
         if line_kind != LineKind::Normal {
             text.pop(); // Remove trailing colon
         }
@@ -174,6 +174,10 @@ impl Line {
     pub fn is_else(&self) -> bool {
         self.line_kind == LineKind::Else
     }
+
+    pub fn rawline(&self) -> &str {
+        &self.rawline
+    }
     
     pub fn source(&self) -> &SourceKind {
         &self.line_identifier.source
@@ -193,10 +197,6 @@ impl Line {
         }
 
         Ok(())
-    }
-
-    pub fn rawline(&self) -> &str {
-        &self.rawline
     }
 
     pub fn words(&self) -> &Vec<Word> {

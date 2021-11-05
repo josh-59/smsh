@@ -84,7 +84,7 @@ pub fn r#fn(smsh: &mut Shell, line: &mut Line) -> Result<()> {
     let fn_name = argv.last().unwrap().to_string();
 
     let fn_body = smsh.get_block(line.source(), line.indentation() + 1)?
-        .iter().map(|x| x.text()).collect();
+        .iter().map(|x| x.rawline().to_string()).collect();
 
     let func = UserFunction::new(fn_name, fn_body);
 

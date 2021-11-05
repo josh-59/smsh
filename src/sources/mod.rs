@@ -74,6 +74,7 @@ impl Sources {
                     lines.push(line);
                 } else {
                     self.buffer.push_front(line);
+                    break;
                 }
             }
         } else if let Some(mut source) = self.sources.pop() {
