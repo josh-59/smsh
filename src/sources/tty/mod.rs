@@ -4,12 +4,15 @@ use std::collections::VecDeque;
 
 use anyhow::{anyhow, Result};
 use reedline::{DefaultPrompt, Reedline, Signal, Prompt as ReedlinePrompt, PromptEditMode, PromptHistorySearch};
+use reedline::DefaultCompletionActionHandler;
 
 use crate::line::Line;
 use super::{Source, SourceKind};
 
 mod line_validator;
 use line_validator::SmshLineValidator;
+mod completer;
+use completer::build_completer;
 
 pub struct Tty {
     line_editor: Reedline,
@@ -19,9 +22,15 @@ pub struct Tty {
 }
 
 impl Tty {
+
+
     pub fn build_source() -> Result<Box<dyn Source>> {
+
+        let completer = Box::new(build_completer()?);
+
         let line_editor = Reedline::create()?
-            .with_validator(Box::new(SmshLineValidator));
+            .with_validator(Box::new(SmshLineValidator))
+            .with_completion_action_handler(Box::new(DefaultCompletionActionHandler::default().with_completer(completer)));
 
         Ok(Box::new(Tty { line_editor, line_num: 0, last_line: None, buffer: VecDeque::<Line>::new()}))
     }
