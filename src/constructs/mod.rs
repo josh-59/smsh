@@ -35,7 +35,7 @@ pub fn r#if(smsh: &mut Shell, line: &mut Line) -> Result<()> {
             let body = smsh.get_block(line.source(), line.indentation() + 1)?;
             bodies.push(body);
         } else {
-            smsh.push_back(line);
+            smsh.push_front(line);
             break;
         }
     }
@@ -114,3 +114,20 @@ pub fn r#for(smsh: &mut Shell, line: &mut Line) -> Result<()> {
     smsh.set_rv(0);
     Ok(())
 }
+
+
+pub fn r#while(smsh: &mut Shell, line: &mut Line) -> Result<()> {
+    let conditional = line.get_conditional()?;
+
+    let body = smsh.get_block(line.source(), line.indentation() + 1)?;
+
+    if smsh.execute_subshell(&conditional)? {
+        smsh.push_block(body.clone());
+        smsh.push_back(line.clone());
+        smsh.push_block(body);
+    }
+    
+    smsh.set_rv(0);
+    Ok(())
+}
+

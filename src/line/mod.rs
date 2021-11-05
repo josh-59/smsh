@@ -3,7 +3,7 @@ use std::fmt;
 
 use crate::shell::Shell;
 use crate::sources::SourceKind;
-use crate::constructs::{r#if, r#fn, r#for};
+use crate::constructs::{r#if, r#fn, r#for, r#while};
 
 mod word;
 use word::Word;
@@ -18,6 +18,7 @@ pub enum LineKind {
     Else,
     FunctionDefinition,
     For,
+    While,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -122,6 +123,9 @@ impl Line {
             LineKind::For => {
                 r#for(smsh, self)
             }
+            LineKind::While => {
+                r#while(smsh, self)
+            }
         }
     }
 
@@ -169,7 +173,7 @@ impl Line {
     pub fn is_else(&self) -> bool {
         self.line_kind == LineKind::Else
     }
-
+    
     pub fn source(&self) -> &SourceKind {
         &self.line_identifier.source
     }
@@ -230,32 +234,38 @@ impl fmt::Display for Line {
     }
 }
 
-fn get_line_kind(rawline: &str) -> Result<LineKind> {
-    if rawline.starts_with("if") {
-        if rawline.ends_with(':') {
+fn get_line_kind(text: &str) -> Result<LineKind> {
+    if text.starts_with("if") {
+        if text.ends_with(':') {
             Ok(LineKind::If)
         } else {
             Err(anyhow!("Improperly formed if"))
         }
-    } else if rawline.starts_with("elif") {
-        if rawline.ends_with(':') {
+    } else if text.starts_with("elif") {
+        if text.ends_with(':') {
             Ok(LineKind::Elif)
         } else {
             Err(anyhow!("Improperly formed elif"))
         }
-    } else if rawline == "else:" {
+    } else if text == "else:" {
         Ok(LineKind::Else)
-    } else if rawline.starts_with("fn") {
-        if rawline.ends_with(":") {
+    } else if text.starts_with("fn") {
+        if text.ends_with(":") {
             Ok(LineKind::FunctionDefinition)
         } else {
             Err(anyhow!("Improperly formed function definition"))
         }
-    } else if rawline.starts_with("for") {
-        if rawline.ends_with(":") {
+    } else if text.starts_with("for") {
+        if text.ends_with(":") {
             Ok(LineKind::For)
         } else {
-            Err(anyhow!("Improperly formed `for` construct\n{}", rawline))
+            Err(anyhow!("Improperly formed `for` construct\n{}", text))
+        }
+    } else if text.starts_with("while") {
+        if text.ends_with(":") {
+            Ok(LineKind::While)
+        } else {
+            Err(anyhow!("Improperly formed `while` construct\n{}", text))
         }
     } else {
         Ok(LineKind::Normal)

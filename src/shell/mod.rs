@@ -51,7 +51,11 @@ impl Shell {
         self.sources.push_source(source)
     }
 
-    pub fn push_back(&mut self, line: Line) {
+    pub fn push_front(&mut self, line: Line) {
+        self.sources.push_front(line);
+    }
+
+    pub fn push_back(&mut self, line:Line) {
         self.sources.push_back(line);
     }
 
@@ -120,7 +124,7 @@ impl Shell {
             ForkResult::Child => {
                 self.clear_sources();
                 let line = Line::new(line.to_string(), 0, SourceKind::Subshell)?;
-                self.push_back(line);
+                self.push_front(line);
 
                 while let Err(e) = self.run() {
                     eprintln!("smsh (subshell): {}", e);
@@ -135,7 +139,7 @@ impl Shell {
         let mut argv = Vec::<CString>::new();
 
         for arg in args {
-            let arg = match CString::new(arg) {
+            let c_arg = match CString::new(arg) {
                 Ok(x) => {
                      x
                 }
@@ -145,7 +149,7 @@ impl Shell {
                 }
             };
 
-            argv.push(arg);
+            argv.push(c_arg);
         }
 
         let _ = unistd::execvp(&argv[0], &argv);

@@ -33,11 +33,8 @@ impl Source for While {
         // At the top of each loop, evaluate conditional
         if self.line_num == 0 { 
             if {
-                Ok(None)
+                Ok(Some(self.conditional.clone())
             } else {
-                let rawline = format!("let {} = {}", 
-                                      self.iterator_key, 
-                                      self.iterator_values[self.iter_idx]);
                 self.iter_idx += 1;
 
                 let line = Line::new(rawline, 

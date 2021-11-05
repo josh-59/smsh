@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use nix::unistd::{close, dup, dup2, fork, ForkResult, pipe};
-use nix::sys::wait::waitpid;
+use nix::sys::wait::{waitpid, WaitStatus};
 
 use std::os::unix::io::RawFd;
 
@@ -88,9 +88,16 @@ impl Pipeline {
         if last_elem.is_external_command() {
             match unsafe { fork()? } {
                 ForkResult::Parent{child: pid, ..} => {
-                    waitpid(pid, None)?;
-                }
+                    
+                    match waitpid(pid, None)? {
+                        WaitStatus::Exited(_pid, exit_status) => {
+                            smsh.set_rv(exit_status);
+                        }
+                        _ => {
 
+                        }
+                    }
+                }
                 ForkResult::Child => {
                     smsh.clear_sources();
                     last_elem.execute(smsh)?;
