@@ -82,10 +82,6 @@ impl Source for Tty {
         true
     }
 
-    fn is_faux_source(&self) -> bool {
-        false
-    }
-
     fn print_error(&mut self) -> Result<()> {
         if let Some(line) = &self.last_line {
             eprintln!("{}", line);

@@ -27,10 +27,11 @@ pub enum SourceKind {
 pub trait Source {
     fn get_line(&mut self) -> Result<Option<Line>>;
     fn is_tty(&self) -> bool; 
-    fn is_faux_source(&self) -> bool;
+
     fn print_error(&mut self) -> Result<()>;
 }
 
+// TODO: Sources::sources should only contain tty, scripts and functions.
 pub struct Sources {
     sources: Vec<Box<dyn Source>>,
     buffer: VecDeque<Line>,
@@ -118,13 +119,11 @@ impl Sources {
 
     pub fn backtrace(&mut self) {
         while let Some(mut source) = self.sources.pop() {
-            if !source.is_faux_source() && !source.is_tty() {
-                let _ = source.print_error();
-            }
-
             if source.is_tty() {
                 self.sources.push(source);
                 break;
+            } else {
+                let _ = source.print_error();
             }
         }
     }

@@ -29,10 +29,6 @@ impl Source for SubshellSource {
         false
     }
 
-    fn is_faux_source(&self) -> bool {
-        false
-    }
-
     fn print_error(&mut self) -> Result<()> {
         if self.line_num > 0 {
             eprintln!("{}", self.lines[self.line_num - 1]);

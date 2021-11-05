@@ -67,10 +67,6 @@ impl Source for For {
         false
     }
 
-    fn is_faux_source(&self) -> bool {
-        true
-    }
-
     fn print_error(&mut self) -> Result<()> {
         eprintln!("For");
         Ok(())

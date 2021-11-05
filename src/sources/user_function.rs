@@ -47,10 +47,6 @@ impl Source for UserFunction {
         false
     }
 
-    fn is_faux_source(&self) -> bool {
-        false
-    }
-
     fn print_error(&mut self) -> Result<()> {
         eprintln!("{}", 
                     Line::new(self.fn_body[self.line_num - 1].clone(),
