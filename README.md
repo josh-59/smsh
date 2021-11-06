@@ -29,8 +29,10 @@ $ echo e{PATH}
 /usr/local/sbin:/usr/local/bin:/usr/bin
 ```
 
-__Verbose Error Reporting__ No more `syntax error near unexpected token \`foo'`!
-Rust gets CLI error reporting, and we want to be like Rust:
+Our goal is to do the shell well, and otherwise to stay out of the way.
+
+__Verbose Error Reporting__ No more `syntax error near unexpected token`!
+The Rust compiler does CLI error reporting right, and we want to be like Rust:
 
 ```
 $ echo e{PATH
@@ -39,14 +41,12 @@ echo e{PATH
 ```
 
 __Modular__ `smsh` respects the Unix Philosophy by letting the shell 
-execute external commands wherever possible.  
+execute external commands wherever possible:  
 
 ```
 $ if test -e direction:
     echo `smsh` has direction!
 ```
-
-__
 
 ## Project Status
 
