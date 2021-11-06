@@ -14,20 +14,48 @@ __Fully Functional__ `smsh` does not compromise with respect to functionality.
 It is intended to be capable as a primary shell in both interactive and 
 non-interactive capacities.
 
-__Modern Interactive Experience__ Wrapping the simple and capable shell core is
+__Modern Interactive Experience__ Wrapping a simple and capable core is
 an interactive layer that takes the best-of from current shells and
-the Rust ecosystem.
+the Rust ecosystem.  
 
+## Features
+
+__Strictly Explicit Expansion__  No aliasing here!  All expansion occurs
+within braces `{}`, with expansion types being denoted by leading
+characters.  For example, `e` denotes environment variable expansion:
+
+```
+$ echo e{PATH}
+/usr/local/sbin:/usr/local/bin:/usr/bin
+```
+
+__Verbose Error Reporting__ No more `syntax error near unexpected token \`foo'`!
+Rust gets CLI error reporting, and we want to be like Rust:
+
+```
+$ echo e{PATH
+echo e{PATH
+      ^ Unclosed expansion brace
+```
+
+__Modular__ `smsh` respects the Unix Philosophy by letting the shell 
+execute external commands wherever possible.  
+
+```
+$ if test -e direction:
+    echo `smsh` has direction!
+```
+
+__
 
 ## Project Status
 
-Under initial development.  We're still getting our wheels under us, 
-so this project will enter alpha when
-
-- [ ]  While loop implemented
-- [ ]  Interactive features become useable
+Entering 'Alpha' Status.  Major features are present and working, 
+but We're still getting our wheels under us.
 
 
 ## Contributing
 
 Contributions are always welcome!
+
+
