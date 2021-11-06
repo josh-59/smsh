@@ -410,6 +410,7 @@ dependencies = [
  "crossterm 0.22.1",
  "nix",
  "reedline",
+ "unicode-segmentation",
  "xdg",
 ]
 

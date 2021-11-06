@@ -1,5 +1,7 @@
-use anyhow::{anyhow, Result};
 use std::fmt;
+
+use anyhow::{anyhow, Result};
+use unicode_segmentation::UnicodeSegmentation;
 
 use crate::shell::Shell;
 use crate::sources::SourceKind;
@@ -281,7 +283,7 @@ fn get_words(rawline: &str) -> Result<Vec<String>> {
         SingleQuoted,
         DoubleQuoted,
         Unquoted,
-        Expansion(usize),
+        Expansion(usize, usize), // Index, depth
     }
 
     let mut words = Vec::<String>::new();
@@ -289,52 +291,52 @@ fn get_words(rawline: &str) -> Result<Vec<String>> {
 
     let mut state = State::Unquoted;
 
-    for ch in rawline.chars() {
+    for (i, grapheme) in rawline.graphemes(false).enumerate() {
         match state {
-            State::Unquoted => match ch {
-                ' ' | '\n' | '\t' => {
-                        if !word.is_empty() {
+            State::Unquoted => match grapheme {
+                " " | "\n" | "\t" => {
+                    if !word.is_empty() {
                         words.push(word);
                         word = String::new();
+                    }
                 }
-            }
-                '\'' => {
-                    word.push(ch);
+                "\'" => {
+                    word.push_str(grapheme);
                     state = State::SingleQuoted;
                 }
-                '\"' => {
-                    word.push(ch);
+                "\"" => {
+                    word.push_str(grapheme);
                     state = State::DoubleQuoted;
                 }
-                '{' => {
-                    word.push(ch);
-                    state = State::Expansion(1);
+                "{" => {
+                    word.push_str(grapheme);
+                    state = State::Expansion(i, 1);
                 }
                 _ => {
-                    word.push(ch);
+                    word.push_str(grapheme);
                 }
             },
             State::SingleQuoted => {
-                word.push(ch);
-                if ch == '\'' {
-                        state = State::Unquoted;
-                    } 
-            }
-            State::DoubleQuoted => {
-                word.push(ch);
-                if ch == '\"' {
+                word.push_str(grapheme);
+                if grapheme == "\'" {
                     state = State::Unquoted;
                 } 
-            }
-            State::Expansion(n) => {
-                word.push(ch);
-                if ch == '{' {
-                    state = State::Expansion(n + 1);
-                } else if ch == '}' {
-                    state = State::Expansion(n - 1);
+            },
+            State::DoubleQuoted => {
+                word.push_str(grapheme);
+                if grapheme == "\"" {
+                    state = State::Unquoted;
+                } 
+            },
+            State::Expansion(_, n) => {
+                word.push_str(grapheme);
+                if grapheme == "{" {
+                    state = State::Expansion(i, n + 1);
+                } else if grapheme == "}" {
+                    state = State::Expansion(i, n - 1);
                 }
 
-                if state == State::Expansion(0) {
+                if state == State::Expansion(i, 0) {
                     state = State::Unquoted
                 }
             }
@@ -348,7 +350,8 @@ fn get_words(rawline: &str) -> Result<Vec<String>> {
     match state {
         State::SingleQuoted => Err(anyhow!("Unmatched single quote.")),
         State::DoubleQuoted => Err(anyhow!("Unmatched double quote.")),
-        State::Expansion(_) => Err(anyhow!("Unmatched brace.")),
+        State::Expansion(i, _) => Err(anyhow!(
+            format!("{}\n{:>width$} Unmatched expansion brace", rawline, "^", width = "smsh: ".len() + i + 1))),
         State::Unquoted => Ok(words),
     }
 }
