@@ -71,7 +71,7 @@ impl Sources {
 
         if !self.buffer.is_empty() {
             while let Some(line) = self.buffer.pop_front() {
-                if *line.source() == *source_kind && line.indentation() == indent {
+                if *line.source() == *source_kind && line.indentation() >= indent {
                     lines.push(line);
                 } else {
                     self.buffer.push_front(line);
@@ -80,7 +80,7 @@ impl Sources {
             }
         } else if let Some(mut source) = self.sources.pop() {
             while let Some(line) = source.get_line()? {
-                if *line.source() == *source_kind && line.indentation() == indent {
+                if *line.source() == *source_kind && line.indentation() >= indent {
                     lines.push(line);
             } else {
                     self.sources.push(source);
@@ -88,7 +88,7 @@ impl Sources {
                     break;
                 }
             }
-        }
+        } 
 
         Ok(lines)
     }
