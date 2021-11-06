@@ -57,3 +57,4 @@ but We're still getting our wheels under us.
 ## Contributing
 
 Contributions are always welcome!
+Ideas and suggestions are welcome as-well.
