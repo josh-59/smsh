@@ -1,4 +1,4 @@
-smsh Official Documentation
+`smsh` Official Documentation
 ===========================
 
 Introduction
@@ -9,14 +9,13 @@ It is intended to be full-featured, resonably fast, and most of all, easy to use
 
 `smsh` works on any Unix-like operating system (and it is a bug if this is not the case).
 Its codebase strives for correctness and simplicity, at the expense of speed.
-It is intended to be the single friendliest interactive shell in existence.
+
 
 
 As a shell that is easy to understand, 
 there are three major concepts to be understood:
 - Pipelines
 - Expansions
-- Conditionals
 
 ## Pipelines
 Each line given to `smsh` is interpretted as a pipeline.
