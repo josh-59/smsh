@@ -52,14 +52,19 @@ impl Source for For {
                 Ok(Some(line))
             }
         } else { // self.line_num is now one greater than true index
-            let line = self.body[self.line_num - 1].clone();
+            if self.body.is_empty() {
+                Ok(None)
+            } else {
+                let line = self.body[self.line_num - 1].clone();
 
-            self.line_num += 1;
-            if self.line_num - 1 == self.body.len() {
-                self.line_num = 0;
+                self.line_num += 1;
+                if self.line_num - 1 == self.body.len() {
+                    self.line_num = 0;
+                }
+
+                Ok(Some(line))
             }
 
-            Ok(Some(line))
         }
     }
 
@@ -68,7 +73,6 @@ impl Source for For {
     }
 
     fn print_error(&mut self) -> Result<()> {
-        eprintln!("For");
         Ok(())
     }
 }
