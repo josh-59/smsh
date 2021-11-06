@@ -98,7 +98,10 @@ pub fn r#fn(smsh: &mut Shell, line: &mut Line) -> Result<()> {
 pub fn r#for(smsh: &mut Shell, line: &mut Line) -> Result<()> {
     let argv = line.argv();
 
-    if argv.len() < 4 || argv[2] != "in" {
+    // We allow empty for loop: Just don't do anything.
+    if argv.len() == 3 && argv[2] == "in" {
+        return Ok(()); 
+    } else if argv.len() < 4 || argv[2] != "in" {
         return Err(anyhow!("Improperly formed for loop"));
     }
 
