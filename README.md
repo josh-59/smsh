@@ -38,13 +38,15 @@ echo e{PATH
       ^ Unclosed expansion brace
 ```
 
-__Modular__ `smsh` respects the Unix Philosophy by letting the shell 
-execute external commands wherever possible:  
+__Modular__ `smsh` respects the Unix Philosophy by letting 
+executing external commands wherever possible:  
 
 ```
 $ if test -e direction:
     echo `smsh` has direction!
+`smsh` has direction!
 ```
+
 
 ## Project Status
 
@@ -55,5 +57,3 @@ but We're still getting our wheels under us.
 ## Contributing
 
 Contributions are always welcome!
-
-
