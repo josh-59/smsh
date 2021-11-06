@@ -29,8 +29,6 @@ $ echo e{PATH}
 /usr/local/sbin:/usr/local/bin:/usr/bin
 ```
 
-Our goal is to do the shell well, and otherwise to stay out of the way.
-
 __Verbose Error Reporting__ No more `syntax error near unexpected token`!
 The Rust compiler does CLI error reporting right, and we want to be like Rust:
 
