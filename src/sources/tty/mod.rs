@@ -3,8 +3,8 @@ use std::boxed::Box;
 use std::collections::VecDeque;
 
 use anyhow::{anyhow, Result};
-use reedline::{DefaultPrompt, Reedline, Signal, Prompt as ReedlinePrompt, PromptEditMode, PromptHistorySearch};
-use reedline::DefaultCompletionActionHandler;
+use reedline::{CircularCompletionHandler, Reedline, Signal, Prompt, PromptEditMode, PromptHistorySearch};
+use nix::unistd;
 
 use crate::line::Line;
 use super::{Source, SourceKind};
@@ -22,15 +22,14 @@ pub struct Tty {
 }
 
 impl Tty {
-
-
     pub fn build_source() -> Result<Box<dyn Source>> {
 
         let completer = Box::new(build_completer()?);
 
         let line_editor = Reedline::create()?
             .with_validator(Box::new(SmshLineValidator))
-            .with_completion_action_handler(Box::new(DefaultCompletionActionHandler::default().with_completer(completer)));
+            .with_completion_action_handler(Box::new(CircularCompletionHandler::default().with_completer(completer)))
+            .with_repaint(None);
 
         Ok(Box::new(Tty { line_editor, line_num: 0, last_line: None, buffer: VecDeque::<Line>::new()}))
     }
@@ -44,7 +43,7 @@ impl Source for Tty {
             return Ok(Some(line));
         }
 
-        match self.line_editor.read_line(&DefaultPrompt::default())? {
+        match self.line_editor.read_line(&SimplePrompt)? {
             Signal::Success(buffer) => {
                 self.line_num += 1;
 
@@ -91,11 +90,15 @@ impl Source for Tty {
     }
 }
 
-struct BlockPrompt;
+struct SimplePrompt;
 
-impl ReedlinePrompt for BlockPrompt {
+impl Prompt for SimplePrompt {
     fn render_prompt(&self, _screen_width: usize) -> Cow<'_, str> {
-        let prompt_string = "> ".to_string();
+        let prompt_string = if unistd::getuid().is_root() {
+            "# ".to_string()
+        } else {
+            "$ ".to_string()
+        };
         Cow::Owned(prompt_string)
     }
 
