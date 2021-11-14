@@ -23,7 +23,6 @@ unloaded.
 Core Builtins:
     cd
     exit
-    let
     self::load_module
     self::unlaod_module
 
