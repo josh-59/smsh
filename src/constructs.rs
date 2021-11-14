@@ -12,10 +12,7 @@ pub fn r#if(smsh: &mut Shell, line: &mut Line) -> Result<()> {
     } else if line.is_else() {
         smsh.set_rv(1);
         return Err(anyhow!("if: `else` must follow `if`"))
-    } else if !line.is_if() {
-        smsh.set_rv(1);
-        return Err(anyhow!("if: Improperly formed conditional"))
-    }
+    } 
 
     let conditional = line.get_conditional()?;
 
@@ -67,7 +64,6 @@ pub fn r#if(smsh: &mut Shell, line: &mut Line) -> Result<()> {
         }
     }
 
-    smsh.set_rv(0);
     Ok(())
 }
 
@@ -90,7 +86,6 @@ pub fn r#fn(smsh: &mut Shell, line: &mut Line) -> Result<()> {
 
     smsh.insert_user_function(func);
 
-    smsh.set_rv(0);
     Ok(())
 }
 
@@ -130,7 +125,6 @@ pub fn r#while(smsh: &mut Shell, line: &mut Line) -> Result<()> {
         smsh.push_block(body);
     }
     
-    smsh.set_rv(0);
     Ok(())
 }
 
@@ -154,6 +148,5 @@ pub fn r#let(smsh: &mut Shell, line: &mut Line) -> Result<()> {
 
     smsh.insert_user_variable(key, value);
 
-    smsh.set_rv(0);
     Ok(())
 }
