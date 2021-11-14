@@ -134,3 +134,26 @@ pub fn r#while(smsh: &mut Shell, line: &mut Line) -> Result<()> {
     Ok(())
 }
 
+pub fn r#let(smsh: &mut Shell, line: &mut Line) -> Result<()> {
+    let argv = line.argv();
+
+    if argv.len() < 4 || argv[2] != "=" {
+        smsh.set_rv(1);
+        return Err(anyhow!("Improper invocation of `let`"));
+    }
+
+    let key = argv[1].to_string();
+    let mut value = String::new();
+
+    for word in &argv[3..] {
+        value.push_str(word);
+        value.push(' ');
+    }
+
+    value.pop();
+
+    smsh.insert_user_variable(key, value);
+
+    smsh.set_rv(0);
+    Ok(())
+}

@@ -5,7 +5,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::shell::Shell;
 use crate::sources::SourceKind;
-use crate::constructs::{r#if, r#fn, r#for, r#while};
+use crate::constructs::{r#if, r#fn, r#for, r#while, r#let};
 
 mod word;
 use word::Word;
@@ -21,6 +21,7 @@ pub enum LineKind {
     FunctionDefinition,
     For,
     While,
+    Let,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -75,7 +76,7 @@ impl Line {
 
         // Assert line type
         let line_kind = get_line_kind(text.as_str())?;
-        if line_kind != LineKind::Normal {
+        if line_kind != LineKind::Normal && line_kind != LineKind::Let {
             text.pop(); // Remove trailing colon
         }
 
@@ -128,6 +129,9 @@ impl Line {
             }
             LineKind::While => {
                 r#while(smsh, self)
+            }
+            LineKind::Let => {
+                r#let(smsh, self)
             }
         }
     }
@@ -237,6 +241,7 @@ impl fmt::Display for Line {
     }
 }
 
+// TODO: Maybe hash these somehow?
 fn get_line_kind(text: &str) -> Result<LineKind> {
     if text.starts_with("if") {
         if text.ends_with(':') {
@@ -270,6 +275,8 @@ fn get_line_kind(text: &str) -> Result<LineKind> {
         } else {
             Err(anyhow!("Improperly formed `while` construct\n{}", text))
         }
+    } else if text.starts_with("let") {
+        Ok(LineKind::Let)
     } else {
         Ok(LineKind::Normal)
     }

@@ -64,26 +64,3 @@ pub fn ulm_builtin(smsh: &mut Shell, argv: Vec<&str>) -> Result<()> {
         Err(anyhow!("unload_module: Improper invocation of self::unload_module"))
     }
 }
-
-pub fn r#let(smsh: &mut Shell, argv: Vec<&str>) -> Result<()> {
-
-    if argv.len() < 4 || argv[2] != "=" {
-        smsh.set_rv(1);
-        return Err(anyhow!("Improper invocation of `let`"));
-    }
-
-    let key = argv[1].to_string();
-    let mut value = String::new();
-
-    for word in &argv[3..] {
-        value.push_str(word);
-        value.push(' ');
-    }
-
-    value.pop();
-
-    smsh.insert_user_variable(key, value);
-
-    smsh.set_rv(0);
-    Ok(())
-}
