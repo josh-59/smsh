@@ -161,16 +161,12 @@ impl Line {
         Ok(conditional)
     }
 
-    pub fn identifier(&self) -> LineIdentifier {
-        self.line_identifier.clone()
+    pub fn identifier(&self) -> &LineIdentifier {
+        &self.line_identifier
     }
 
     pub fn indentation(&self) -> usize {
         self.line_identifier.indentation()
-    }
-
-    pub fn is_if(&self) -> bool {
-        self.line_kind == LineKind::If
     }
 
     pub fn is_elif(&self) -> bool {
