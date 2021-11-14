@@ -27,10 +27,10 @@ File::is_character_special _file_
 File::is_symbolic_link _file_
     Returns true if _file_ is a symbolic link, otherwise returns false.
 
-File::is_fifo
+File::is_fifo _file_
     Returns true if _file_ is a FIFO (named pipe), otherwise returns false.
 
-File::is_socket
+File::is_socket _file_
     Returns true if _file_ is a socket, otherwise returns false.
 
 File::is_readable
