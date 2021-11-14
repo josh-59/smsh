@@ -95,6 +95,7 @@ pub fn r#for(smsh: &mut Shell, line: &mut Line) -> Result<()> {
 
     // We allow empty for loop: Just don't do anything.
     if argv.len() == 3 && argv[2] == "in" {
+        let _discard: Vec<Line>  = smsh.get_block(line.source(), line.indentation() + 1)?;
         return Ok(()); 
     } else if argv.len() < 4 || argv[2] != "in" {
         return Err(anyhow!("Improperly formed for loop"));
