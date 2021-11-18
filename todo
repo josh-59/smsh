@@ -3,17 +3,18 @@
 
     $ if foo:
     >     for bar in baz:
-    >>         echo nonsense
+    >>         echo something
     >>                      # No spaces or tabs escapes both indentation
-    nonsense
+    something 
     $
 
 2) Apply separation and selection logic to strings
+    e.g., 
     $ echo "hello world!"[0]
     hello
 
 3) Filename Expansion
-    $ echo f{}
-    Desktop Downloads Pictures Public 
+    a) Complete documentation (so we know what we want)
+    b) Implement
 
-4) Verbose error reporting
+4) Implement `exec` builtin: Replace current (shell) process with command
