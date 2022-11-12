@@ -20,16 +20,16 @@ the Rust ecosystem.
 
 ## Features
 
-__Strictly Explicit Expansion__  No aliasing here!  All expansion occurs
+__Strictly Explicit Expansion.__  No aliasing here!  All expansion occurs
 within braces `{}`, with expansion types being denoted by leading
-characters.  For example, `e` denotes environment variable expansion:
+characters.  For example, `e{}` denotes environment variable expansion:
 
 ```
 $ echo e{PATH}
 /usr/local/sbin:/usr/local/bin:/usr/bin
 ```
 
-__Verbose Error Reporting__ No more `syntax error near unexpected token`!
+__Verbose Error Reporting.__ No more "Syntax error near unexpected token"!
 The Rust compiler does CLI error reporting right, and we want to be like Rust:
 
 ```
