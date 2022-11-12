@@ -1,7 +1,5 @@
 # Simple Shell
 
-## Embrace the Stupid
-
 `smsh` is a shell meant to be understood.
 
 ## Design Goals
