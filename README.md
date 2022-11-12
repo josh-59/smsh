@@ -7,11 +7,11 @@
 ## Design Goals
 
 __Simple__  is good. Simple means easy to understand, easy to learn and easy
-to master.  Simple also means clean, and `smsh` takes after Python to offer a clean
-scripting language.
+to master.  Simple also means clean, and `smsh` takes after Python et al. to offer 
+a clean, modern scripting language.
 
-__Fully Functional.__ `smsh` does not compromise with respect to functionality.
-It is intended to be capable as a primary shell for both interactive and 
+__Fully Functional__ means that `smsh` will do anything you need it to do.
+It is intended to be capable as a shell for both interactive and 
 non-interactive use-cases.
 
 __Modern Interactive Experience__ Wrapping a simple and capable core is
