@@ -1,7 +1,7 @@
 use anyhow::Result;
 
 use super::Source;
-use crate::line::{Line, LineIdentifier};
+use crate::line::{Line, LineID};
 
 #[derive(Clone)]
 pub struct For {
@@ -10,11 +10,11 @@ pub struct For {
     body: Vec<Line>,
     line_num: usize,
     iter_idx: usize,
-    for_line_identifier: LineIdentifier, // Topmost line identifier
+    for_line_identifier: LineID, // Topmost line identifier
 }
 
 impl For {
-    pub fn new(iterator_key: String, iterator_values: Vec<String>, body: Vec<Line>, for_line_identifier: LineIdentifier) -> Self{
+    pub fn new(iterator_key: String, iterator_values: Vec<String>, body: Vec<Line>, for_line_identifier: LineID) -> Self{
         Self {
             iterator_key,
             iterator_values,
@@ -44,8 +44,8 @@ impl Source for For {
                 self.iter_idx += 1;
 
                 let line = Line::new(rawline, 
-                             self.for_line_identifier.line_num(), 
-                             self.for_line_identifier.source())?;
+                             self.for_line_identifier.line_num, 
+                             self.for_line_identifier.source_kind.clone())?;
                 
                 self.line_num += 1;
 

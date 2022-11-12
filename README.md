@@ -1,8 +1,8 @@
-
 # Simple Shell
 
-A shell for the next generation.
+## Embrace the Stupid
 
+`smsh` is a shell meant to be understood.
 
 ## Design Goals
 
@@ -34,11 +34,11 @@ The Rust compiler does CLI error reporting right, and we want to be like Rust:
 
 ```
 $ echo e{PATH
-echo e{PATH
-      ^ Unclosed expansion brace
+smsh: echo e{PATH
+            ^ Unmatched expansion brace
 ```
 
-__Modular__ `smsh` respects the Unix Philosophy by letting 
+__Modular__ `smsh` respects the Unix Philosophy by 
 executing external commands wherever possible:  
 
 ```
@@ -51,7 +51,7 @@ $ if test -e direction:
 ## Project Status
 
 Entering 'Alpha' Status.  Major features are present and working, 
-but We're still getting our wheels under us.
+but we're still getting our wheels under us.
 
 
 ## Contributing

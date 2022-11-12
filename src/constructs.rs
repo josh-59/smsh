@@ -1,3 +1,6 @@
+/// This file contains the definitions for 
+/// if, for, while, let and fn.
+
 use crate::shell::Shell;
 use crate::line::Line;
 use crate::sources::user_function::UserFunction;
@@ -6,6 +9,7 @@ use crate::sources::r#for::For;
 use anyhow::{anyhow, Result};
 
 pub fn r#if(smsh: &mut Shell, line: &mut Line) -> Result<()> {
+    // We expect to find 'if' before 'elif' and 'else'.
     if line.is_elif() {
         smsh.set_rv(1);
         return Err(anyhow!("if: `elif` must follow `if`"));

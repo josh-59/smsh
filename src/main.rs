@@ -14,5 +14,5 @@ fn main() {
         smsh.backtrace();
     }
 
-    std::process::exit(smsh.state().rv);
+    std::process::exit(smsh.rv());
 }

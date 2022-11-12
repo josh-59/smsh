@@ -12,18 +12,17 @@ To do that, they employ a main loop consisting of just a few steps:
 3. Find and execute command(s)
 
 Where shells differ is in step two, interpretation.
-This shell carries out the following steps:
+`smsh` carries out the following steps:
 
 1. Expansion
 2. Separation
 3. Selection
 
-
 Expansion
 ---------
 
 Expansion is the replacement of text with some other text.
-All shells do expansion; in `smsh`, all expansions take place
+All shells support expansion; in `smsh`, all expansions take place
 within braces, `{}`.
 We can, for instance, declare a variable with `let`, then
 replace it with the text it contains:
@@ -34,7 +33,7 @@ $ echo {arg}
 Hello World!
 ```
 
-Unadorned braces, like those above, denote variable expansion.
+Unadorned braces denote variable expansion.
 Other types of expansion are had by prepending some character to 
 the expansion.
 For example, `e{ }` denotes environment variable expansion:
@@ -43,6 +42,8 @@ For example, `e{ }` denotes environment variable expansion:
 $ echo e{PATH}
 /usr/bin/:/usr/local/bin:/usr/local/sbin
 ```
+
+Also supported are filename expansions, `f{ }`, 
 
 Separation
 ----------
@@ -55,7 +56,7 @@ $ echo {arg}
 Hello World!
 ```
 
-the `echo` command receives two arguments, `hello` and `world`.
+the `echo` command receives two arguments, `Hello` and `World!`.
 We can separate by some arbitrary string by appending `S="[string]"`, 
 like so:
 
@@ -63,3 +64,27 @@ like so:
 $ echo e{PATH}S=":"
 /usr/bin /usr/local/bin /usr/local/sbin
 ```
+
+Selection
+---------
+
+After separation, and before finding and executing a given command, 
+`smsh` allows the user to select some subset of an expansion.
+
+For example,
+
+```
+$ echo {arg}[0]
+Hello
+$ echo {arg}[1]
+World!
+```
+
+Justification
+-------------
+
+Every shell defines a language of its own; this language becomes common 
+as shell scripts are put into use. 
+As a common language, the ideal shell language should be simple to grasp 
+and obvious to use, so that even if you don't use it yourself, you can 
+still read it easily.

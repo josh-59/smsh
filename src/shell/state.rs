@@ -1,21 +1,28 @@
-
 pub struct State {
     interactive: bool,
-    
-    // Each builtin changes (or resets) this;
-    // Each invocation of an external command sets this.
+
+    // True if shell is to carry out parsing only
+    no_exec: bool,
+
+    // Each builtin and each external command sets (resets) this.
+    // In particular, shell constructs do not affect this.
     pub rv: i32,
 }
 
 impl State {
     pub fn new() -> Self {
-        State { 
+        State {
             interactive: true,
+            no_exec: false,
             rv: 0,
         }
     }
 
     pub fn is_interactive(&self) -> bool {
         self.interactive
+    }
+
+    pub fn no_exec(&self) -> bool {
+        self.no_exec
     }
 }

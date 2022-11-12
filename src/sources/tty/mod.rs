@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::boxed::Box;
 use std::collections::VecDeque;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use reedline::{Reedline, Signal, Prompt, PromptEditMode, PromptHistorySearch};
 use nix::unistd;
 
@@ -11,6 +11,7 @@ use super::{Source, SourceKind};
 
 mod line_validator;
 use line_validator::SmshLineValidator;
+mod completer;
 
 pub struct Tty {
     line_editor: Reedline,
@@ -20,12 +21,12 @@ pub struct Tty {
 }
 
 impl Tty {
-    pub fn build_source() -> Result<Box<dyn Source>> {
+    pub fn build_source() -> Box<dyn Source> {
 
-        let line_editor = Reedline::create()?
+        let line_editor = Reedline::create()
             .with_validator(Box::new(SmshLineValidator));
 
-        Ok(Box::new(Tty { line_editor, line_num: 0, last_line: None, buffer: VecDeque::<Line>::new()}))
+        Box::new(Tty { line_editor, line_num: 0, last_line: None, buffer: VecDeque::<Line>::new()})
     }
 }
 
@@ -62,11 +63,11 @@ impl Source for Tty {
 
                 Ok(Some(line))
             }
+            Signal::CtrlC => {
+                Ok(Some(Line::new(String::new(), self.line_num, SourceKind::Tty).unwrap()))
+            }
             Signal::CtrlD => {
                 Ok(None)
-            }
-            _ => {
-                Err(anyhow!("reedline: Unexpected input"))
             }
         }
     }
@@ -87,13 +88,17 @@ impl Source for Tty {
 struct SimplePrompt;
 
 impl Prompt for SimplePrompt {
-    fn render_prompt(&self, _screen_width: usize) -> Cow<'_, str> {
+    fn render_prompt_left(&self) -> Cow<'_, str> {
         let prompt_string = if unistd::getuid().is_root() {
             "# ".to_string()
         } else {
             "$ ".to_string()
         };
         Cow::Owned(prompt_string)
+    }
+
+    fn render_prompt_right(&self) -> Cow<'_, str> {
+        Cow::Owned("".to_string())
     }
 
     fn render_prompt_indicator(&self, _prompt_mode: PromptEditMode) -> Cow<'_, str> {

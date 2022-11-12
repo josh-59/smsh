@@ -1,5 +1,5 @@
 use crate::line::Line;
-use crate::sources::{Sources, SourceKind, user_function::UserFunction, Source};
+use crate::sources::{Sources, SourceKind, user_function::UserFunction, Source, tty::Tty};
 use anyhow::{anyhow, Result};
 use nix::unistd::{self, fork, ForkResult};
 use nix::sys::wait::{wait, WaitStatus};
@@ -11,9 +11,9 @@ use std::process::exit;
 mod state;
 use state::State;
 pub mod modules;
-use modules::Builtin;
+use modules::{Module, Builtin, load_module};
 mod init;
-use init::init;
+use init::push_interactive_init_script;
 
 pub struct Shell {
     state: State,
@@ -24,8 +24,32 @@ pub struct Shell {
 }
 
 impl Shell {
+
+    // This function should never fail, so that
+    // a user of smsh always gets into its main loop.
     pub fn new() -> Shell {
-        init()
+        let state = State::new();
+        let sources = Sources::new();
+        let builtins = HashMap::<&'static str, Builtin>::new();
+        let user_variables = HashMap::<String, String>::new();
+        let user_functions = HashMap::<String, UserFunction>::new();
+    
+        let mut smsh = Shell {
+            state,
+            sources,
+            builtins,
+            user_variables,
+            user_functions,
+        };
+
+        load_module(&mut smsh, Module::Core);
+
+        if smsh.state.is_interactive() {
+            smsh.push_source(Tty::build_source());
+            push_interactive_init_script(&mut smsh);
+        }
+
+        smsh
     }
 
     pub fn run(&mut self) -> Result<()> {
@@ -39,8 +63,13 @@ impl Shell {
         Ok(())
     }
 
+    // TODO: Overhaul source constructs s.t. this fn deals with sources
     pub fn get_line(&mut self) -> Result<Option<Line>> {
-        self.sources.get_line()
+        if self.sources.len() == 0 {
+            Ok(None)
+        } else {
+            self.sources.get_line()
+        }
     }
 
     pub fn get_block(&mut self, source_kind: &SourceKind, indent: usize) -> Result<Vec<Line>> {
@@ -64,7 +93,11 @@ impl Shell {
     }
 
     pub fn clear_sources(&mut self) {
-        self.sources.clear_sources();
+        self.sources.clear();
+    }
+
+    fn is_interactive(&mut self) -> bool {
+        self.state.is_interactive()
     }
 
     pub fn backtrace(&mut self) {
@@ -103,6 +136,10 @@ impl Shell {
         self.state.rv = rv;
     }
 
+    pub fn rv(&self) -> i32 {
+        self.state.rv
+    }
+
     // Executes `line` in a subshell environment, waits for it
     // and collects its return value.
     pub fn execute_subshell(&mut self, line: &str) -> Result<bool> {
@@ -121,6 +158,9 @@ impl Shell {
                     }
                 }
             }
+
+            // TODO: This error should propogate backwards through the call stack,
+            // as with any other error.
             ForkResult::Child => {
                 self.clear_sources();
                 let line = Line::new(line.to_string(), 0, SourceKind::Subshell)?;

@@ -27,7 +27,6 @@ pub enum SourceKind {
 pub trait Source {
     fn get_line(&mut self) -> Result<Option<Line>>;
     fn is_tty(&self) -> bool; 
-
     fn print_error(&mut self) -> Result<()>;
 }
 
@@ -40,6 +39,16 @@ pub struct Sources {
 impl Sources {
     pub fn new() -> Self {
         Sources { sources: vec![], buffer: VecDeque::<Line>::new()}
+    }
+
+    pub fn len(&self) -> usize {
+        let mut len = self.sources.len();
+
+        if !self.buffer.is_empty() {
+            len += 1;
+        }
+        
+        len
     }
 
     pub fn get_line(&mut self) -> Result<Option<Line>> {
@@ -113,7 +122,7 @@ impl Sources {
         self.sources.push(source)
     }
 
-    pub fn clear_sources(&mut self) {
+    pub fn clear(&mut self) {
         self.sources.clear();
     }
 

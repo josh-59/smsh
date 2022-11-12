@@ -24,25 +24,11 @@ pub enum LineKind {
     Let,
 }
 
+// Should only ever be read-only
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct LineIdentifier {
-    source: SourceKind,
-    line_num: usize,
-    indentation: usize,
-}
-
-impl LineIdentifier {
-    pub fn source(&self) -> SourceKind {
-        self.source.clone()
-    }
-
-    pub fn line_num(&self) -> usize {
-        self.line_num
-    }
-
-    pub fn indentation(&self) -> usize {
-        self.indentation
-    }
+pub struct LineID {
+    pub source_kind: SourceKind,
+    pub line_num: usize,
 }
 
 // Represents a logical line given to the shell.
@@ -52,47 +38,51 @@ impl LineIdentifier {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Line {
     rawline: String,    // Original string passed to Line. 
-                        // Does not include trailing newlines 
     line_kind: LineKind,
-    line_identifier: LineIdentifier,
+    line_id: LineID,
     words: Vec<Word>,
+    indentation: usize,
 }
 
 impl Line {
-    pub fn new(mut rawline: String, line_num: usize, source: SourceKind) -> Result<Line> {
+    pub fn new(mut rawline: String, line_num: usize, source_kind: SourceKind) -> Result<Line> {
 
-        // Finalize rawline
-        while rawline.ends_with('\n') {
-            rawline.pop();
-        }
-
-        // Build LineIdentifier
-        let (mut text, indentation) = get_indentation(rawline.clone());
-        let line_identifier = LineIdentifier {
-            source,
+        // Build LineID
+        let indentation = get_indentation(rawline.as_str());
+        let mut text = rawline[count_leading_whitespace(rawline.as_str())..].to_string();
+        let line_id = LineID {
+            source_kind,
             line_num, 
-            indentation,
         };
 
         // Assert line type
         let line_kind = get_line_kind(text.as_str())?;
-        if line_kind != LineKind::Normal && line_kind != LineKind::Let {
-            text.pop(); // Remove trailing colon
+
+        // Remove trailing colon, if applicable
+        match &line_kind {
+            LineKind::If |
+            LineKind::Elif |
+            LineKind::Else |
+            LineKind::FunctionDefinition |
+            LineKind::For |
+            LineKind::While => {
+                text.pop();
+            },
+            _default => {}
         }
 
         // Get words
         let mut words = Vec::<Word>::new();
         for word in get_words(text.as_str())? {
-            if !word.is_empty() {
-                words.push(Word::new(word)?);
-            }
+            words.push(Word::new(word)?);
         }
 
         Ok( Line {
             rawline,
             line_kind,
-            line_identifier,
+            line_id,
             words,
+            indentation,
         } )
     }
 
@@ -116,7 +106,11 @@ impl Line {
             LineKind::Normal => {
                 let mut pipeline = Pipeline::new(self, smsh)?;
 
-                pipeline.execute(smsh)
+                if smsh.state().no_exec() {
+                    Ok(())
+                } else {
+                    pipeline.execute(smsh)
+                }
             }
             LineKind::If | LineKind::Elif | LineKind::Else => {
                 r#if(smsh, self)
@@ -161,12 +155,12 @@ impl Line {
         Ok(conditional)
     }
 
-    pub fn identifier(&self) -> &LineIdentifier {
-        &self.line_identifier
+    pub fn identifier(&self) -> &LineID {
+        &self.line_id
     }
 
     pub fn indentation(&self) -> usize {
-        self.line_identifier.indentation()
+        self.indentation
     }
 
     pub fn is_elif(&self) -> bool {
@@ -182,7 +176,7 @@ impl Line {
     }
     
     pub fn source(&self) -> &SourceKind {
-        &self.line_identifier.source
+        &self.line_id.source_kind
     }
 
     pub fn separate(&mut self) -> Result<()> {
@@ -208,29 +202,29 @@ impl Line {
 
 impl fmt::Display for Line {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.line_identifier.source {
+        match &self.line_id.source_kind {
             SourceKind::Tty => {
-                write!(f, "\tTTY line {}: {}", self.line_identifier.line_num, self.rawline)
+                write!(f, "\tTTY line {}: {}", self.line_id.line_num, self.rawline)
             }
             SourceKind::Subshell => {
                 write!(
                     f,
                     "\tSubshell Expansion line {}: {}",
-                    self.line_identifier.line_num, self.rawline
+                    self.line_id.line_num, self.rawline
                 )
             }
             SourceKind::UserFunction(s) => {
                 write!(
                     f,
                     "\tFunction `{}` line {}: {}",
-                    s, self.line_identifier.line_num, self.rawline
+                    s, self.line_id.line_num, self.rawline
                 )
             }
             SourceKind::Script(s) => {
                 write!(
                     f,
                     "\tScript `{}` line {}: {}",
-                    s, self.line_identifier.line_num, self.rawline
+                    s, self.line_id.line_num, self.rawline
                 )
             }
         }
@@ -251,8 +245,12 @@ fn get_line_kind(text: &str) -> Result<LineKind> {
         } else {
             Err(anyhow!("Improperly formed elif"))
         }
-    } else if text == "else:" {
-        Ok(LineKind::Else)
+    } else if text.starts_with("else") {
+        if text.ends_with(':') {
+            Ok(LineKind::Else)
+        } else {
+            Err(anyhow!("Improperly formed if"))
+        }
     } else if text.starts_with("fn") {
         if text.ends_with(":") {
             Ok(LineKind::FunctionDefinition)
@@ -280,6 +278,7 @@ fn get_line_kind(text: &str) -> Result<LineKind> {
 
 // Breaks rawline into words according to quoting rules.
 // Quotes and braces are preserved, whitespace is removed
+// TODO Implement escape via backslash \
 fn get_words(rawline: &str) -> Result<Vec<String>> {
     #[derive(PartialEq, Eq)]
     enum State {
@@ -297,7 +296,7 @@ fn get_words(rawline: &str) -> Result<Vec<String>> {
     for (i, grapheme) in rawline.graphemes(false).enumerate() {
         match state {
             State::Unquoted => match grapheme {
-                " " | "\n" | "\t" => {
+                " " | "\t" => {
                     if !word.is_empty() {
                         words.push(word);
                         word = String::new();
@@ -360,14 +359,12 @@ fn get_words(rawline: &str) -> Result<Vec<String>> {
 }
 
 
-fn get_indentation(rawline: String) -> (String, usize) {
+fn get_indentation(rawline: &str) -> usize {
     let mut spaces: usize = 0;
-    let mut leading_whitespace: usize = 0;
-    let mut indentation: usize = 0;
+    let mut indentation = 0;
 
     for ch in rawline.chars() {
         if ch == ' ' {
-            leading_whitespace += 1;
             if spaces == 3 {
                 indentation += 1;
                 spaces = 0;
@@ -375,16 +372,31 @@ fn get_indentation(rawline: String) -> (String, usize) {
                 spaces += 1;
             }
         } else if ch == '\t' {
-            leading_whitespace += 1;
             indentation += 1;
             spaces = 0;
         } else {
             break;
         }
     }
-    
-    (rawline[leading_whitespace..].to_string(), indentation)
 
+    indentation
+}
+
+fn count_leading_whitespace(rawline: &str) -> usize {
+    let mut leading_whitespace = 0;
+
+    for ch in rawline.chars() {
+        match ch {
+            ' ' | '\t' => {
+                leading_whitespace += 1
+            },
+            _default => {
+                break
+            }
+        }
+    }
+
+    leading_whitespace
 }
 
 

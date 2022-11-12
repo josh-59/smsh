@@ -1,5 +1,5 @@
 // This file is a holdover from early development days.
-// It provides a (theoretically) infallible means of reading
+// It provides an infallible means of reading
 // from STDIN.
 
 use anyhow::Result;
