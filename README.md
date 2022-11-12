@@ -38,7 +38,7 @@ smsh: echo e{PATH
             ^ Unmatched expansion brace
 ```
 
-__Modular__ `smsh` respects the Unix Philosophy by 
+__Modular.__ `smsh` respects the Unix Philosophy by 
 executing external commands wherever possible:  
 
 ```
