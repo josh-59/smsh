@@ -55,10 +55,17 @@ pub fn r#if(smsh: &mut Shell, line: &mut Line) -> Result<()> {
     let mut found = false;
 
     for (conditional, body) in conditionals.iter().zip(bodies) {
-        if smsh.execute_subshell(conditional)? {
-            found = true;
-            smsh.push_block(body);
-            break;
+        match smsh.evaluate_conditional(conditional)? {
+            Some(b) => {
+                if b {
+                    found = true;
+                    smsh.push_block(body);
+                    break;
+                }
+            }
+            None => {
+                return Ok(())
+            }
         }
     }
 
@@ -124,10 +131,12 @@ pub fn r#while(smsh: &mut Shell, line: &mut Line) -> Result<()> {
 
     let body = smsh.get_block(line.source(), line.indentation() + 1)?;
 
-    if smsh.execute_subshell(&conditional)? {
-        smsh.push_block(body.clone());
-        smsh.push_back(line.clone());
-        smsh.push_block(body);
+    if let Some(b) = smsh.evaluate_conditional(&conditional)? {
+        if b {
+            smsh.push_block(body.clone());
+            smsh.push_back(line.clone());
+            smsh.push_block(body);
+        }
     }
     
     Ok(())

@@ -45,7 +45,7 @@ impl Shell {
         load_module(&mut smsh, Module::Core);
 
         // TODO: Add 'queue_source'
-        if smsh.state.is_interactive() {
+        if smsh.is_interactive() {
             smsh.push_source(Tty::new());
             push_interactive_init_script(&mut smsh);
         }
@@ -66,11 +66,7 @@ impl Shell {
 
     // TODO: Overhaul source constructs s.t. this fn deals with sources
     pub fn get_line(&mut self) -> Result<Option<Line>> {
-        if self.sources.len() == 0 {
-            Ok(None)
-        } else {
-            self.sources.get_line()
-        }
+        self.sources.get_line()
     }
 
     pub fn get_block(&mut self, source_kind: &SourceKind, indent: usize) -> Result<Vec<Line>> {
@@ -97,12 +93,12 @@ impl Shell {
         self.sources.clear();
     }
 
-    fn is_interactive(&mut self) -> bool {
-        self.state.is_interactive()
-    }
-
     pub fn backtrace(&mut self) {
         self.sources.backtrace()
+    }
+
+    fn is_interactive(&mut self) -> bool {
+        self.state.is_interactive()
     }
 
     pub fn insert_user_variable(&mut self, key: String, val: String) {
@@ -143,15 +139,15 @@ impl Shell {
 
     // Executes `line` in a subshell environment, waits for it
     // and collects its return value.
-    pub fn execute_subshell(&mut self, line: &str) -> Result<bool> {
+    pub fn evaluate_conditional(&mut self, line: &str) -> Result<Option<bool>> {
         match unsafe { fork()? } {
             ForkResult::Parent { child: _, .. } => {
                 match wait()? {
                     WaitStatus::Exited(_pid, exit_status) => {
                         if exit_status == 0 {
-                            Ok(true)
+                            Ok(Some(true))
                         } else {
-                            Ok(false)
+                            Ok(Some(false))
                         }
                     }
                     _ => {
@@ -160,18 +156,12 @@ impl Shell {
                 }
             }
 
-            // TODO: This error should propogate backwards through the call stack,
-            //       as with any other error.
             ForkResult::Child => {
                 self.clear_sources();
                 let line = Line::new(line.to_string(), 0, SourceKind::Subshell)?;
                 self.push_front(line);
 
-                while let Err(e) = self.run() {
-                    eprintln!("smsh (subshell): {}", e);
-                }
-
-                std::process::exit(self.state.rv);
+                Ok(None)
             }
         }
     }

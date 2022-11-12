@@ -21,7 +21,7 @@ pub struct Tty {
 }
 
 impl Tty {
-    pub fn build_source() -> Box<dyn Source> {
+    pub fn new() -> Box<dyn Source> {
 
         let line_editor = Reedline::create()
             .with_validator(Box::new(SmshLineValidator));

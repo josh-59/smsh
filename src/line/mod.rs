@@ -22,6 +22,7 @@ pub enum LineKind {
     For,
     While,
     Let,
+    Empty,
 }
 
 // Should only ever be read-only
@@ -45,37 +46,26 @@ pub struct Line {
 }
 
 impl Line {
-    pub fn new(mut rawline: String, line_num: usize, source_kind: SourceKind) -> Result<Line> {
+    pub fn new(rawline: String, line_num: usize, source_kind: SourceKind) -> Result<Line> {
 
-        // Build LineID
-        let indentation = get_indentation(rawline.as_str());
-        let mut text = rawline[count_leading_whitespace(rawline.as_str())..].to_string();
         let line_id = LineID {
             source_kind,
             line_num, 
         };
 
-        // Assert line type
-        let line_kind = get_line_kind(text.as_str())?;
-
-        // Remove trailing colon, if applicable
-        match &line_kind {
-            LineKind::If |
-            LineKind::Elif |
-            LineKind::Else |
-            LineKind::FunctionDefinition |
-            LineKind::For |
-            LineKind::While => {
-                text.pop();
-            },
-            _default => {}
-        }
+        let indentation = get_indentation(&rawline);
 
         // Get words
         let mut words = Vec::<Word>::new();
-        for word in get_words(text.as_str())? {
+        for word in get_words(&rawline)? {
             words.push(Word::new(word)?);
         }
+
+        let line_kind = if words.len() > 0 {
+            get_line_kind(&words[0])
+        } else {
+            LineKind::Empty
+        };
 
         Ok( Line {
             rawline,
@@ -126,6 +116,9 @@ impl Line {
             }
             LineKind::Let => {
                 r#let(smsh, self)
+            }
+            LineKind::Empty => {
+                Ok(())
             }
         }
     }
@@ -231,48 +224,32 @@ impl fmt::Display for Line {
     }
 }
 
-// TODO: Maybe hash these somehow?
-fn get_line_kind(text: &str) -> Result<LineKind> {
-    if text.starts_with("if") {
-        if text.ends_with(':') {
-            Ok(LineKind::If)
-        } else {
-            Err(anyhow!("Improperly formed if"))
+fn get_line_kind(word: &Word) -> LineKind {
+    match word.text() {
+        "if" => {
+            LineKind::If
         }
-    } else if text.starts_with("elif") {
-        if text.ends_with(':') {
-            Ok(LineKind::Elif)
-        } else {
-            Err(anyhow!("Improperly formed elif"))
+        "elif" => {
+            LineKind::Elif
         }
-    } else if text.starts_with("else") {
-        if text.ends_with(':') {
-            Ok(LineKind::Else)
-        } else {
-            Err(anyhow!("Improperly formed if"))
+        "else" => {
+            LineKind::Else
         }
-    } else if text.starts_with("fn") {
-        if text.ends_with(":") {
-            Ok(LineKind::FunctionDefinition)
-        } else {
-            Err(anyhow!("Improperly formed function definition"))
+        "fn" => {
+            LineKind::FunctionDefinition
         }
-    } else if text.starts_with("for") {
-        if text.ends_with(":") {
-            Ok(LineKind::For)
-        } else {
-            Err(anyhow!("Improperly formed `for` construct\n{}", text))
+        "for" => {
+            LineKind::For
         }
-    } else if text.starts_with("while") {
-        if text.ends_with(":") {
-            Ok(LineKind::While)
-        } else {
-            Err(anyhow!("Improperly formed `while` construct\n{}", text))
+        "while" => {
+            LineKind::While
         }
-    } else if text.starts_with("let") {
-        Ok(LineKind::Let)
-    } else {
-        Ok(LineKind::Normal)
+        "let" => {
+            LineKind::Let
+        }
+        _ => {
+            LineKind::Normal
+        }
     }
 }
 
@@ -381,22 +358,4 @@ fn get_indentation(rawline: &str) -> usize {
 
     indentation
 }
-
-fn count_leading_whitespace(rawline: &str) -> usize {
-    let mut leading_whitespace = 0;
-
-    for ch in rawline.chars() {
-        match ch {
-            ' ' | '\t' => {
-                leading_whitespace += 1
-            },
-            _default => {
-                break
-            }
-        }
-    }
-
-    leading_whitespace
-}
-
 
