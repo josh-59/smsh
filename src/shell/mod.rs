@@ -44,8 +44,9 @@ impl Shell {
 
         load_module(&mut smsh, Module::Core);
 
+        // TODO: Add 'queue_source'
         if smsh.state.is_interactive() {
-            smsh.push_source(Tty::build_source());
+            smsh.push_source(Tty::new());
             push_interactive_init_script(&mut smsh);
         }
 
@@ -160,7 +161,7 @@ impl Shell {
             }
 
             // TODO: This error should propogate backwards through the call stack,
-            // as with any other error.
+            //       as with any other error.
             ForkResult::Child => {
                 self.clear_sources();
                 let line = Line::new(line.to_string(), 0, SourceKind::Subshell)?;
@@ -175,6 +176,7 @@ impl Shell {
         }
     }
 
+    // WRONG!
     pub fn execute_external_command(&mut self, args: Vec<&str>) -> Result<()> {
         let mut argv = Vec::<CString>::new();
 
@@ -196,6 +198,3 @@ impl Shell {
         Ok(())
     }
 }
-
-
-
