@@ -12,7 +12,7 @@ To do that, they employ a main loop consisting of just a few steps:
 3. Find and execute command(s)
 
 Where shells differ is in step two, interpretation.
-`smsh` carries out the following steps:
+`smsh` breaks interpretation down into three steps:
 
 1. Expansion
 2. Separation
@@ -69,7 +69,7 @@ Selection
 ---------
 
 After separation, and before finding and executing a given command, 
-`smsh` allows the user to select some subset of an expansion.
+`smsh` allows the user to select some subset of the results of expansion.
 
 For example,
 
@@ -79,12 +79,3 @@ Hello
 $ echo {arg}[1]
 World!
 ```
-
-Justification
--------------
-
-Every shell defines a language of its own; this language becomes common 
-as shell scripts are put into use. 
-As a common language, the ideal shell language should be simple to grasp 
-and obvious to use, so that even if you don't use it yourself, you can 
-still read it easily.

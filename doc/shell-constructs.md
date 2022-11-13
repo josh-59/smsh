@@ -1,6 +1,12 @@
 smsh Official Documentation
 ===========================
 
+Every shell defines a language of its own; this language becomes common 
+as shell scripts are put into use. 
+As a common language, the ideal shell language should be simple to grasp 
+and obvious to use, so that even if you don't use it yourself, you can 
+still read it easily.
+
 Shell Constructs
 ----------------
 
@@ -12,7 +18,7 @@ Shell Constructs
 Conditional statements in `smsh` could not be simpler:
 
 ```
-if [command]:
+if [command]
     [body]
 ```
 
@@ -20,11 +26,11 @@ Executes [command].  If [command] returns zero (true), execute [body].
 Multi-branch statements follow in the spirit of Python: 
 
 ```
-if [command]:
+if [command]
     [body]
-elif [command]:
+elif [command]
     [body]
-else:
+else
     [body]
 ```
 
@@ -36,7 +42,7 @@ are ignored.
 For loops iterate over values:
 
 ```
-$ for val in one two three four:
+$ for val in one two three four
 >     echo {val}    
 one
 two

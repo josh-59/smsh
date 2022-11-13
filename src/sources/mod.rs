@@ -41,16 +41,6 @@ impl Sources {
         Sources { sources: vec![], buffer: VecDeque::<Line>::new()}
     }
 
-    pub fn len(&self) -> usize {
-        let mut len = self.sources.len();
-
-        if !self.buffer.is_empty() {
-            len += 1;
-        }
-        
-        len
-    }
-
     pub fn get_line(&mut self) -> Result<Option<Line>> {
         if let Some(line) = self.buffer.pop_front() {
             Ok(Some(line))
@@ -74,7 +64,6 @@ impl Sources {
     }
 
     // Captures one block from a single source
-    // Blocks are delimited by a single blank line.
     pub fn get_block(&mut self, source_kind: &SourceKind, indent: usize) -> Result<Vec<Line>> {
         let mut lines = Vec::<Line>::new();
 
@@ -110,12 +99,8 @@ impl Sources {
         }
     }
 
-    pub fn push_front(&mut self, line: Line) {
+    pub fn push_line(&mut self, line: Line) {
         self.buffer.push_front(line);
-    }
-
-    pub fn push_back(&mut self, line: Line) {
-        self.buffer.push_back(line);
     }
 
     pub fn push_source(&mut self, source: Box<dyn Source>) {

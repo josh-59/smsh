@@ -77,12 +77,8 @@ impl Shell {
         self.sources.push_source(source)
     }
 
-    pub fn push_front(&mut self, line: Line) {
-        self.sources.push_front(line);
-    }
-
-    pub fn push_back(&mut self, line:Line) {
-        self.sources.push_back(line);
+    pub fn push_line(&mut self, line: Line) {
+        self.sources.push_line(line);
     }
 
     pub fn push_block(&mut self, lines: Vec<Line>) {
@@ -159,7 +155,7 @@ impl Shell {
             ForkResult::Child => {
                 self.clear_sources();
                 let line = Line::new(line.to_string(), 0, SourceKind::Subshell)?;
-                self.push_front(line);
+                self.push_line(line);
 
                 Ok(None)
             }

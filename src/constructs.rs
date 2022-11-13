@@ -36,7 +36,7 @@ pub fn r#if(smsh: &mut Shell, line: &mut Line) -> Result<()> {
             let body = smsh.get_block(line.source(), line.indentation() + 1)?;
             bodies.push(body);
         } else {
-            smsh.push_front(line);
+            smsh.push_line(line);
             break;
         }
     }
@@ -81,6 +81,12 @@ pub fn r#if(smsh: &mut Shell, line: &mut Line) -> Result<()> {
 // Collect a block of input from the shell, create a
 // a new function with it, and save it into the shell
 pub fn r#fn(smsh: &mut Shell, line: &mut Line) -> Result<()> {
+
+    // If function invocation is incorrect, we collect and discard
+    // the following block of input
+    let fn_body = smsh.get_block(line.source(), line.indentation() + 1)?
+        .iter().map(|x| x.rawline().to_string()).collect();
+
     let argv = line.argv();
 
     if argv.len() != 2 {
@@ -90,8 +96,6 @@ pub fn r#fn(smsh: &mut Shell, line: &mut Line) -> Result<()> {
 
     let fn_name = argv.last().unwrap().to_string();
 
-    let fn_body = smsh.get_block(line.source(), line.indentation() + 1)?
-        .iter().map(|x| x.rawline().to_string()).collect();
 
     let func = UserFunction::new(fn_name, fn_body);
 
@@ -101,6 +105,9 @@ pub fn r#fn(smsh: &mut Shell, line: &mut Line) -> Result<()> {
 }
 
 // Define and push a 'for' loop onto execution stack
+// TODO: `for` loops should implicitly 'unset' the iterator key when the
+// body of the for loop is complete.  It would be sufficient (but crude) to 
+// run the line, `let iterator_key = ` after the for loop exits
 pub fn r#for(smsh: &mut Shell, line: &mut Line) -> Result<()> {
     let argv = line.argv();
 
@@ -119,6 +126,8 @@ pub fn r#for(smsh: &mut Shell, line: &mut Line) -> Result<()> {
 
     let body: Vec<Line>  = smsh.get_block(line.source(), line.indentation() + 1)?;
 
+
+
     smsh.push_source(For::new(iterator_key, iterator_values, body, line.identifier().clone()).build_source());
 
     smsh.set_rv(0);
@@ -131,10 +140,10 @@ pub fn r#while(smsh: &mut Shell, line: &mut Line) -> Result<()> {
 
     let body = smsh.get_block(line.source(), line.indentation() + 1)?;
 
-    if let Some(b) = smsh.evaluate_conditional(&conditional)? {
-        if b {
+    if let Some(res) = smsh.evaluate_conditional(&conditional)? {
+        if res {
             smsh.push_block(body.clone());
-            smsh.push_back(line.clone());
+            smsh.push_line(line.clone());
             smsh.push_block(body);
         }
     }
