@@ -1,8 +1,8 @@
 use crate::line::Line;
-use crate::sources::{Sources, SourceKind, user_function::UserFunction, Source, tty::Tty};
+use crate::sources::{tty::Tty, user_function::UserFunction, Source, SourceKind, Sources};
 use anyhow::{anyhow, Result};
-use nix::unistd::{self, fork, ForkResult};
 use nix::sys::wait::{wait, WaitStatus};
+use nix::unistd::{self, fork, ForkResult};
 
 use std::collections::HashMap;
 use std::ffi::CString;
@@ -11,7 +11,7 @@ use std::process::exit;
 mod state;
 use state::State;
 pub mod modules;
-use modules::{Module, Builtin, load_module};
+use modules::{load_module, Builtin, Module};
 mod init;
 use init::push_interactive_init_script;
 
@@ -24,7 +24,6 @@ pub struct Shell {
 }
 
 impl Shell {
-
     // This function should never fail, so that
     // a user of smsh always gets into its main loop.
     pub fn new() -> Shell {
@@ -33,7 +32,6 @@ impl Shell {
         let builtins = HashMap::<&'static str, Builtin>::new();
         let user_variables = HashMap::<String, String>::new();
         let user_functions = HashMap::<String, UserFunction>::new();
-    
         let mut smsh = Shell {
             state,
             sources,
@@ -56,7 +54,6 @@ impl Shell {
     pub fn run(&mut self) -> Result<()> {
         while let Some(mut line) = self.get_line()? {
             line.expand(self)?;
-            line.separate()?;
             line.select()?;
             line.execute(self)?;
         }
@@ -137,20 +134,19 @@ impl Shell {
     // and collects its return value.
     pub fn evaluate_conditional(&mut self, line: &str) -> Result<Option<bool>> {
         match unsafe { fork()? } {
-            ForkResult::Parent { child: _, .. } => {
-                match wait()? {
-                    WaitStatus::Exited(_pid, exit_status) => {
-                        if exit_status == 0 {
-                            Ok(Some(true))
-                        } else {
-                            Ok(Some(false))
-                        }
-                    }
-                    _ => {
-                        Err(anyhow!("wait: Failed to wait on subshell with line {}", line))
+            ForkResult::Parent { child: _, .. } => match wait()? {
+                WaitStatus::Exited(_pid, exit_status) => {
+                    if exit_status == 0 {
+                        Ok(Some(true))
+                    } else {
+                        Ok(Some(false))
                     }
                 }
-            }
+                _ => Err(anyhow!(
+                    "wait: Failed to wait on subshell with line {}",
+                    line
+                )),
+            },
 
             ForkResult::Child => {
                 self.clear_sources();
@@ -168,9 +164,7 @@ impl Shell {
 
         for arg in args {
             let c_arg = match CString::new(arg) {
-                Ok(x) => {
-                     x
-                }
+                Ok(x) => x,
                 Err(e) => {
                     eprintln!("smsh (child): {}", e);
                     exit(1);

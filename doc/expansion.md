@@ -10,7 +10,6 @@ explicitly denoted by a leading character.
 
 Expansion Types:
     {}          User-Defined Variable Expansion
-    e{}         Environment Variable Expansion
     !{}         Subshell Expansion
     f{}         Filename Expansion
 

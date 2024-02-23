@@ -6,9 +6,7 @@ use std::cmp::min;
 mod expansion;
 use expansion::*;
 mod selection;
-use selection::get_selection;
-mod separation;
-use separation::get_separator;
+use selection::{get_selection, Selection};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Quote {
@@ -26,26 +24,10 @@ pub enum Expansion {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub enum Separator {
-    Whitespace,         // Default
-    Arbitrary(String),  // S="sep"
-    None,               // If single- or double-quoted
-}
-
-// TODO: Slice(Option<usize>, Option<usize>)
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Selection {
-    All,
-    Index(usize),
-    Slice(usize, usize), // Omitted indices are represented by value zero. 
-}
-
-#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Word {
     text: String,
     quote: Quote,
     expansion: Expansion,
-    separator: Separator,
     selection: Selection,
     separated_text: Vec<String>,
     selected_text: Vec<String>,
@@ -54,41 +36,22 @@ pub struct Word {
 // A word is a single logical unit of input text.
 impl Word {
     pub fn new(text: String) -> Result<Word> {
-
         let (text, quote) = get_quote(&text)?;
 
         let (text, selection) = match quote {
-            Quote::Unquoted => {
-                get_selection(&text)?
-            }
-            Quote::SingleQuoted | Quote::DoubleQuoted => {
-                (text, Selection::All)
-            }
-        };
-
-        let (text, separator) = match quote {
-            Quote::SingleQuoted | Quote::DoubleQuoted => {
-                (text, Separator::None)
-            }
-            Quote::Unquoted => {
-                get_separator(&text)
-            }
+            Quote::Unquoted => get_selection(&text)?,
+            Quote::SingleQuoted | Quote::DoubleQuoted => (text, Selection::All),
         };
 
         let (text, expansion) = match quote {
-            Quote::SingleQuoted => {
-                (text, Expansion::None)
-            }
-            Quote::Unquoted | Quote::DoubleQuoted => {
-                get_expansion(&text)
-            }
+            Quote::SingleQuoted => (text, Expansion::None),
+            Quote::Unquoted | Quote::DoubleQuoted => get_expansion(&text),
         };
 
         let word = Word {
             text,
             quote,
             expansion,
-            separator,
             selection,
             separated_text: Vec::<String>::new(),
             selected_text: Vec::<String>::new(),
@@ -100,12 +63,8 @@ impl Word {
     // Replaces self.text with expanded value
     pub fn expand(&mut self, smsh: &mut Shell) -> Result<()> {
         match &self.quote {
-            Quote::Unquoted | Quote::DoubleQuoted => {
-                expand(self, smsh)
-            }
-            Quote::SingleQuoted => {
-                Ok(())
-            }
+            Quote::Unquoted | Quote::DoubleQuoted => expand(self, smsh),
+            Quote::SingleQuoted => Ok(()),
         }
     }
 
@@ -138,7 +97,7 @@ impl Word {
                             self.selected_text.push(w.to_string());
                         }
                     }
-                } 
+                }
             }
             Selection::All => {
                 self.selected_text = self.separated_text.clone();
@@ -147,51 +106,12 @@ impl Word {
         Ok(())
     }
 
-    // Separates self.text by separator desired and pushes each
-    // substring onto self.separated_text
-    pub fn separate(&mut self) -> Result<()> {
-        match &self.separator {
-            Separator::Whitespace => {
-                let mut s = String::new();
-
-                for ch in self.text.chars() {
-                    if ch.is_whitespace() && !s.is_empty() {
-                        self.separated_text.push(s);
-                        s = String::new();
-                    } else {
-                        s.push(ch);
-                    }
-                }
-
-                if !s.is_empty() {
-                    self.separated_text.push(s);
-                }
-                
-                Ok(())
-            }
-            Separator::Arbitrary(s) => {
-                for x in self.text.split(s) {
-                    self.separated_text.push(x.to_string());
-                }
-
-                Ok(())
-            }
-            Separator::None => {
-                self.separated_text.push(self.text.to_string());
-                Ok(())
-            }
-        }
-    }
-
     pub fn text(&self) -> &str {
         &self.text
     }
-
 }
 
-
 fn get_quote(text: &str) -> Result<(String, Quote)> {
-
     let leading_quote = match text.chars().next() {
         Some('\'') => Quote::SingleQuoted,
         Some('\"') => Quote::DoubleQuoted,
@@ -214,9 +134,7 @@ fn get_quote(text: &str) -> Result<(String, Quote)> {
                 Err(anyhow!("Unmatched quote"))
             }
         }
-        Quote::Unquoted => {
-            Ok((text.to_string(), leading_quote))
-        }
+        Quote::Unquoted => Ok((text.to_string(), leading_quote)),
     }
 }
 
@@ -224,7 +142,6 @@ fn get_quote(text: &str) -> Result<(String, Quote)> {
 mod test {
     use super::*;
     use crate::shell::Shell;
-
 
     #[test]
     fn create_word_1() {
@@ -234,7 +151,6 @@ mod test {
             text: "cat".to_string(),
             quote: Quote::Unquoted,
             expansion: Expansion::None,
-            separator: Separator::Whitespace,
             selection: Selection::All,
             separated_text: Vec::<String>::new(),
             selected_text: Vec::<String>::new(),
@@ -251,7 +167,6 @@ mod test {
             text: "cmd".to_string(),
             quote: Quote::Unquoted,
             expansion: Expansion::Variable,
-            separator: Separator::Whitespace,
             selection: Selection::All,
             separated_text: Vec::<String>::new(),
             selected_text: Vec::<String>::new(),
@@ -268,7 +183,6 @@ mod test {
             text: "cmd".to_string(),
             quote: Quote::Unquoted,
             expansion: Expansion::Subshell,
-            separator: Separator::Whitespace,
             selection: Selection::All,
             separated_text: Vec::<String>::new(),
             selected_text: Vec::<String>::new(),
@@ -285,7 +199,6 @@ mod test {
             text: "{cmd}".to_string(),
             quote: Quote::Unquoted,
             expansion: Expansion::Subshell,
-            separator: Separator::Whitespace,
             selection: Selection::All,
             separated_text: Vec::<String>::new(),
             selected_text: Vec::<String>::new(),
@@ -302,7 +215,6 @@ mod test {
             text: "{cmd}".to_string(),
             quote: Quote::Unquoted,
             expansion: Expansion::Subshell,
-            separator: Separator::Whitespace,
             selection: Selection::Index(1),
             separated_text: Vec::<String>::new(),
             selected_text: Vec::<String>::new(),
@@ -319,7 +231,6 @@ mod test {
             text: "{cmd}".to_string(),
             quote: Quote::Unquoted,
             expansion: Expansion::Subshell,
-            separator: Separator::Whitespace,
             selection: Selection::Slice(1, 0),
             separated_text: Vec::<String>::new(),
             selected_text: Vec::<String>::new(),
@@ -336,7 +247,6 @@ mod test {
             text: "!{{cmd}}[1..]".to_string(),
             quote: Quote::SingleQuoted,
             expansion: Expansion::None,
-            separator: Separator::None,
             selection: Selection::All,
             separated_text: Vec::<String>::new(),
             selected_text: Vec::<String>::new(),
@@ -345,11 +255,9 @@ mod test {
         assert_eq!(word, Word::new(cmd).unwrap());
     }
 
-
     #[test]
     fn expand_1() {
-        // Replace 'cmd' with 'cat' 
-        
+        // Replace 'cmd' with 'cat'
         let mut smsh = Shell::new();
         smsh.insert_user_variable("cmd".to_string(), "cat".to_string());
 
@@ -358,92 +266,5 @@ mod test {
         word.expand(&mut smsh).unwrap();
 
         assert_eq!(word.text, "cat".to_string())
-    }
-
-    #[test]
-    fn separate_1() {
-        let cmd = "cat".to_string();
-        let mut word = Word::new(cmd).unwrap();
-
-        word.separate().unwrap();
-
-        assert_eq!(word.separated_text, vec!["cat".to_string()])
-    }
-
-    #[test]
-    fn expand_separate_and_select_1() {
-        let mut smsh = Shell::new();
-
-        smsh.insert_user_variable("vec".to_string(), "zero one two three four".to_string());
-
-        let text = "{vec}".to_string();
-        let mut word = Word::new(text).unwrap();
-
-        word.expand(&mut smsh).unwrap();
-        word.separate().unwrap();
-
-        let res = vec!["zero".to_string(),
-                        "one".to_string(),
-                        "two".to_string(),
-                        "three".to_string(),
-                        "four".to_string()];
-
-        assert_eq!(word.separated_text, res);
-    }
-
-    #[test]
-    fn expand_separate_and_select_2() {
-        let mut smsh = Shell::new();
-
-        smsh.insert_user_variable("vec".to_string(), "zero one two three four".to_string());
-
-        let text = "{vec}[0]".to_string();
-        let mut word = Word::new(text).unwrap();
-
-        word.expand(&mut smsh).unwrap();
-        word.separate().unwrap();
-        word.select().unwrap();
-
-        let res = vec!["zero".to_string()];
-
-        assert_eq!(word.selected_text(), &res);
-    }
-
-    #[test]
-    fn expand_separate_and_select_3() {
-        let mut smsh = Shell::new();
-
-        smsh.insert_user_variable("vec".to_string(), "zero one two three four".to_string());
-
-        let text = "{vec}[2]".to_string();
-        let mut word = Word::new(text).unwrap();
-
-        word.expand(&mut smsh).unwrap();
-        word.separate().unwrap();
-        word.select().unwrap();
-
-        let res = vec!["two".to_string()];
-
-        assert_eq!(word.selected_text(), &res);
-    }
-
-    #[test]
-    fn expand_separate_and_select_4() {
-        let mut smsh = Shell::new();
-
-        smsh.insert_user_variable("vec".to_string(), "zero one two three four".to_string());
-
-        let text = "{vec}[2..]".to_string();
-        let mut word = Word::new(text).unwrap();
-
-        word.expand(&mut smsh).unwrap();
-        word.separate().unwrap();
-        word.select().unwrap();
-
-        let res = vec!["two".to_string(),
-                        "three".to_string(),
-                        "four".to_string()];
-
-        assert_eq!(word.selected_text(), &res);
     }
 }

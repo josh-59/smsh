@@ -41,6 +41,7 @@ impl Sources {
         Sources { sources: vec![], buffer: VecDeque::<Line>::new()}
     }
 
+    // TODO: Check if last character is \, and get another line if it is.  
     pub fn get_line(&mut self) -> Result<Option<Line>> {
         if let Some(line) = self.buffer.pop_front() {
             Ok(Some(line))

@@ -1,15 +1,22 @@
-// To do: Allow variable expansion within selectors?
 //        Allow negative indices (definitely)
+//      This should be redone, making gratuitous use of enums and helper functions.
+//
 
 use anyhow::{anyhow, Result};
-
-use super::Selection;
 
 enum State {
     OnFirstNum,
     FoundFirstPeriod,
     FoundSecondPeriod,
     Invalid,
+}
+
+// TODO: Slice(Option<usize>, Option<usize>)
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Selection {
+    All,
+    Index(usize),
+    Slice(usize, usize), // Omitted indices are represented by value zero.
 }
 
 // Returns text with selector removed.
@@ -92,7 +99,6 @@ fn _get_selection(selector: String) -> Result<Selection> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::line::word::Selection;
 
     #[test]
     fn get_selector_test_some_1() {

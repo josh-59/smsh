@@ -4,9 +4,9 @@
     $ if foo:
     >     for bar in baz:
     >>         echo something
-    >>                      # No spaces or tabs escapes both indentation
-    something 
+    >>                      
     $
+    $ # Note: No spaces or tabs escapes both indentation
 
 2) Apply separation and selection logic to strings
     e.g., 
@@ -18,3 +18,12 @@
     b) Implement
 
 4) Implement `exec` builtin: Replace current (shell) process with command
+
+5) `let` builtin should accept either 'name = value' or 'name=value'
+
+    $ # 'load' a file, where file is a collection of name=value strings.
+    $ # Works for 'name = value' or 'name    = value' or 'name=value' or....
+    $ for line in !{cat file | split}:
+    >     let {line} 
+
+6) "Arrays" module:  Implement functions for push, pop, append, etcetera

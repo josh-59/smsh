@@ -3,11 +3,11 @@ use std::boxed::Box;
 use std::collections::VecDeque;
 
 use anyhow::Result;
-use reedline::{Reedline, Signal, Prompt, PromptEditMode, PromptHistorySearch};
 use nix::unistd;
+use reedline::{Prompt, PromptEditMode, PromptHistorySearch, Reedline, Signal};
 
-use crate::line::Line;
 use super::{Source, SourceKind};
+use crate::line::Line;
 
 mod line_validator;
 use line_validator::SmshLineValidator;
@@ -17,23 +17,24 @@ pub struct Tty {
     line_editor: Reedline,
     line_num: usize,
     last_line: Option<Line>,
-    buffer: VecDeque<Line>, 
+    buffer: VecDeque<Line>,
 }
 
 impl Tty {
     pub fn new() -> Box<dyn Source> {
+        let line_editor = Reedline::create().with_validator(Box::new(SmshLineValidator));
 
-        let line_editor = Reedline::create()
-            .with_validator(Box::new(SmshLineValidator));
-
-        Box::new(Tty { line_editor, line_num: 0, last_line: None, buffer: VecDeque::<Line>::new()})
+        Box::new(Tty {
+            line_editor,
+            line_num: 0,
+            last_line: None,
+            buffer: VecDeque::<Line>::new(),
+        })
     }
 }
 
-
 impl Source for Tty {
     fn get_line(&mut self) -> Result<Option<Line>> {
-
         if let Some(line) = self.buffer.pop_front() {
             return Ok(Some(line));
         }
@@ -47,12 +48,17 @@ impl Source for Tty {
                 // serve it up later using self.buffer.
                 let line = if let Some((first_line, remainder)) = buffer.split_once(":\n") {
                     let mut first_line = first_line.to_string();
-                    first_line.push(':');  // This is retained for processing later on
-                    let first_line = Line::new(first_line.to_string(), self.line_num, SourceKind::Tty)?;
+                    first_line.push(':'); // This is retained for processing later on
+                    let first_line =
+                        Line::new(first_line.to_string(), self.line_num, SourceKind::Tty)?;
 
                     for line in remainder.split('\n') {
                         self.line_num += 1;
-                        self.buffer.push_back(Line::new(line.to_string(), self.line_num, SourceKind::Tty)?);
+                        self.buffer.push_back(Line::new(
+                            line.to_string(),
+                            self.line_num,
+                            SourceKind::Tty,
+                        )?);
                     }
 
                     first_line
@@ -63,12 +69,10 @@ impl Source for Tty {
 
                 Ok(Some(line))
             }
-            Signal::CtrlC => {
-                Ok(Some(Line::new(String::new(), self.line_num, SourceKind::Tty).unwrap()))
-            }
-            Signal::CtrlD => {
-                Ok(None)
-            }
+            Signal::CtrlC => Ok(Some(
+                Line::new(String::new(), self.line_num, SourceKind::Tty).unwrap(),
+            )),
+            Signal::CtrlD => Ok(None),
         }
     }
 
@@ -109,7 +113,10 @@ impl Prompt for SimplePrompt {
         let prompt_string = "> ".to_string();
         Cow::Owned(prompt_string)
     }
-    fn render_prompt_history_search_indicator(&self, _history_search: PromptHistorySearch) -> Cow<'_, str> {
+    fn render_prompt_history_search_indicator(
+        &self,
+        _history_search: PromptHistorySearch,
+    ) -> Cow<'_, str> {
         let prompt_string = "> ".to_string();
         Cow::Owned(prompt_string)
     }

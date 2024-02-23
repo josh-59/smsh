@@ -4,7 +4,13 @@
 Overview
 --------
 
-A shell is a program that interprets and executes user input.
+`smsh` is a shell designed to be learned.  The principal means by which it
+realizes this goal is simplicity.  That and consistency.  Once learned, `smsh`
+strives to be a shell that stays out of your way, like a good desktop
+environment.  
+
+
+
 To do that, they employ a main loop consisting of just a few steps:
 
 1. Get user input
@@ -14,9 +20,16 @@ To do that, they employ a main loop consisting of just a few steps:
 Where shells differ is in step two, interpretation.
 `smsh` breaks interpretation down into three steps:
 
-1. Expansion
-2. Separation
-3. Selection
+1. Interpretation
+2. Expansion
+3. Separation
+4. Selection
+
+Interpretation
+--------------
+
+What does it mean?  
+
 
 Expansion
 ---------

@@ -3,9 +3,9 @@ use std::fmt;
 use anyhow::{anyhow, Result};
 use unicode_segmentation::UnicodeSegmentation;
 
+use crate::constructs::{r#fn, r#for, r#if, r#let, r#while};
 use crate::shell::Shell;
 use crate::sources::SourceKind;
-use crate::constructs::{r#if, r#fn, r#for, r#while, r#let};
 
 mod word;
 use word::Word;
@@ -13,7 +13,7 @@ mod pipeline;
 use pipeline::Pipeline;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub enum LineKind {
+pub enum LineType {
     Normal,
     If,
     Elif,
@@ -38,42 +38,41 @@ pub struct LineID {
 // terminating a line with a pipe operator.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Line {
-    rawline: String,    // Original string passed to Line. 
-    line_kind: LineKind,
+    raw_text: String, // Original string passed to Line.
+    line_type: LineType,
     line_id: LineID,
     words: Vec<Word>,
     indentation: usize,
 }
 
 impl Line {
-    pub fn new(rawline: String, line_num: usize, source_kind: SourceKind) -> Result<Line> {
-
+    pub fn new(raw_text: String, line_num: usize, source_kind: SourceKind) -> Result<Line> {
         let line_id = LineID {
             source_kind,
-            line_num, 
+            line_num,
         };
 
-        let indentation = get_indentation(&rawline);
+        let indentation = get_indentation(&raw_text);
 
-        // Get words
+        // Get parts of line
         let mut words = Vec::<Word>::new();
-        for word in get_words(&rawline)? {
+        for word in get_parts(&raw_text)? {
             words.push(Word::new(word)?);
         }
 
-        let line_kind = if words.len() > 0 {
-            get_line_kind(&words[0])
+        let line_type = if words.len() > 0 {
+            get_line_type(&words[0])
         } else {
-            LineKind::Empty
+            LineType::Empty
         };
 
-        Ok( Line {
-            rawline,
-            line_kind,
+        Ok(Line {
+            raw_text,
+            line_type,
             line_id,
             words,
             indentation,
-        } )
+        })
     }
 
     // Shell constructs use this
@@ -92,8 +91,8 @@ impl Line {
     }
 
     pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
-        match &self.line_kind {
-            LineKind::Normal => {
+        match &self.line_type {
+            LineType::Normal => {
                 let mut pipeline = Pipeline::new(self, smsh)?;
 
                 if smsh.state().no_exec() {
@@ -102,24 +101,12 @@ impl Line {
                     pipeline.execute(smsh)
                 }
             }
-            LineKind::If | LineKind::Elif | LineKind::Else => {
-                r#if(smsh, self)
-            }
-            LineKind::FunctionDefinition => {
-                r#fn(smsh, self)
-            }
-            LineKind::For => {
-                r#for(smsh, self)
-            }
-            LineKind::While => {
-                r#while(smsh, self)
-            }
-            LineKind::Let => {
-                r#let(smsh, self)
-            }
-            LineKind::Empty => {
-                Ok(())
-            }
+            LineType::If | LineType::Elif | LineType::Else => r#if(smsh, self),
+            LineType::FunctionDefinition => r#fn(smsh, self),
+            LineType::For => r#for(smsh, self),
+            LineType::While => r#while(smsh, self),
+            LineType::Let => r#let(smsh, self),
+            LineType::Empty => Ok(()),
         }
     }
 
@@ -143,7 +130,7 @@ impl Line {
             conditional.push(' ');
         }
 
-        conditional.pop();  // Remove trailing whitespace
+        conditional.pop(); // Remove trailing whitespace
 
         Ok(conditional)
     }
@@ -157,27 +144,18 @@ impl Line {
     }
 
     pub fn is_elif(&self) -> bool {
-        self.line_kind == LineKind::Elif
+        self.line_type == LineType::Elif
     }
 
     pub fn is_else(&self) -> bool {
-        self.line_kind == LineKind::Else
+        self.line_type == LineType::Else
     }
 
-    pub fn rawline(&self) -> &str {
-        &self.rawline
+    pub fn raw_text(&self) -> &str {
+        &self.raw_text
     }
-    
     pub fn source(&self) -> &SourceKind {
         &self.line_id.source_kind
-    }
-
-    pub fn separate(&mut self) -> Result<()> {
-        for word in &mut self.words {
-            word.separate()?;
-        }
-
-        Ok(())
     }
 
     pub fn select(&mut self) -> Result<()> {
@@ -197,72 +175,57 @@ impl fmt::Display for Line {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.line_id.source_kind {
             SourceKind::Tty => {
-                write!(f, "\tTTY line {}: {}", self.line_id.line_num, self.rawline)
+                write!(f, "\tTTY line {}: {}", self.line_id.line_num, self.raw_text)
             }
             SourceKind::Subshell => {
                 write!(
                     f,
                     "\tSubshell Expansion line {}: {}",
-                    self.line_id.line_num, self.rawline
+                    self.line_id.line_num, self.raw_text
                 )
             }
             SourceKind::UserFunction(s) => {
                 write!(
                     f,
                     "\tFunction `{}` line {}: {}",
-                    s, self.line_id.line_num, self.rawline
+                    s, self.line_id.line_num, self.raw_text
                 )
             }
             SourceKind::Script(s) => {
                 write!(
                     f,
                     "\tScript `{}` line {}: {}",
-                    s, self.line_id.line_num, self.rawline
+                    s, self.line_id.line_num, self.raw_text
                 )
             }
         }
     }
 }
 
-fn get_line_kind(word: &Word) -> LineKind {
+// TODO: This function should be changed:  Beginning with an "if" statement does not
+// imply that the line is correctly-formatted
+fn get_line_type(word: &Word) -> LineType {
     match word.text() {
-        "if" => {
-            LineKind::If
-        }
-        "elif" => {
-            LineKind::Elif
-        }
-        "else" => {
-            LineKind::Else
-        }
-        "fn" => {
-            LineKind::FunctionDefinition
-        }
-        "for" => {
-            LineKind::For
-        }
-        "while" => {
-            LineKind::While
-        }
-        "let" => {
-            LineKind::Let
-        }
-        _ => {
-            LineKind::Normal
-        }
+        "if" => LineType::If,
+        "elif" => LineType::Elif,
+        "else" => LineType::Else,
+        "fn" => LineType::FunctionDefinition,
+        "for" => LineType::For,
+        "while" => LineType::While,
+        "let" => LineType::Let,
+        _ => LineType::Normal,
     }
 }
 
-// Breaks rawline into words according to quoting rules.
-// Quotes and braces are preserved, whitespace is removed
+// Breaks rawline into parts according to quoting rules.
+// Quotes and braces are preserved, (unquoted) whitespace is removed
 // TODO Implement escape via backslash \
-fn get_words(rawline: &str) -> Result<Vec<String>> {
+fn get_parts(rawline: &str) -> Result<Vec<String>> {
     #[derive(PartialEq, Eq)]
     enum State {
-        SingleQuoted,
-        DoubleQuoted,
+        SingleQuoted(usize), // usize reflects location of found quote
+        DoubleQuoted(usize),
         Unquoted,
-        Expansion(usize, usize), // Index, depth
     }
 
     let mut words = Vec::<String>::new();
@@ -281,60 +244,41 @@ fn get_words(rawline: &str) -> Result<Vec<String>> {
                 }
                 "\'" => {
                     word.push_str(grapheme);
-                    state = State::SingleQuoted;
+                    state = State::SingleQuoted(i);
                 }
                 "\"" => {
                     word.push_str(grapheme);
-                    state = State::DoubleQuoted;
+                    state = State::DoubleQuoted(i);
                 }
-                "{" => {
-                    word.push_str(grapheme);
-                    state = State::Expansion(i, 1);
-                }
+
                 _ => {
                     word.push_str(grapheme);
                 }
             },
-            State::SingleQuoted => {
+            State::SingleQuoted(j) => {
                 word.push_str(grapheme);
                 if grapheme == "\'" {
                     state = State::Unquoted;
-                } 
-            },
-            State::DoubleQuoted => {
+                }
+            }
+            State::DoubleQuoted(j) => {
                 word.push_str(grapheme);
                 if grapheme == "\"" {
                     state = State::Unquoted;
-                } 
-            },
-            State::Expansion(_, n) => {
-                word.push_str(grapheme);
-                if grapheme == "{" {
-                    state = State::Expansion(i, n + 1);
-                } else if grapheme == "}" {
-                    state = State::Expansion(i, n - 1);
-                }
-
-                if state == State::Expansion(i, 0) {
-                    state = State::Unquoted
                 }
             }
         }
     }
-    
     if !word.is_empty() {
         words.push(word);
     }
 
     match state {
-        State::SingleQuoted => Err(anyhow!("Unmatched single quote.")),
-        State::DoubleQuoted => Err(anyhow!("Unmatched double quote.")),
-        State::Expansion(i, _) => Err(anyhow!(
-            format!("{}\n{:>width$} Unmatched expansion brace", rawline, "^", width = "smsh: ".len() + i + 1))),
+        State::SingleQuoted(i) => Err(anyhow!("Unmatched single quote.")),
+        State::DoubleQuoted(i) => Err(anyhow!("Unmatched double quote.")),
         State::Unquoted => Ok(words),
     }
 }
-
 
 fn get_indentation(rawline: &str) -> usize {
     let mut spaces: usize = 0;
@@ -358,4 +302,3 @@ fn get_indentation(rawline: &str) -> usize {
 
     indentation
 }
-
