@@ -1,0 +1,100 @@
+
+    Seems like the design of this shell is wrong.  Seems like it should have
+    an "interpretation" section, like a parser, that breaks the line into 
+    useful bits, and passes it to back up in a partially-rendered form.  Like,
+    "The line is *of the form* so and so.  Maybe
+    [command] [expansion] [redirection] [redirection]
+
+    But in Rust, so it'd be an enum with an accompanying object, like,
+    command[text] expansion[text] redirection[text] redirection[text]
+
+    Doing so would have the effect of separating parsing and execution, and
+    would also give us a clear place to handle errors in input.  More, we 
+    ought to be able to make it concurrent word-wise, if every word is treated
+    the same.  
+
+    Then you could put your tests as concurrent, if there are many of them
+
+    So the first pass would have to deal with quotes-- a collection of functions
+    that result in a collection of enums,
+        
+    enum Unit {         // All text has one escape character removed ? 
+        SingleQuoted(text),
+        DoubleQuoted(text, selection),
+        Raw(text, selection),
+    }
+
+    where selector is 
+
+    enum PreSelector {
+        Some(text),
+        None,
+    }
+    
+    Which can then be tested concurrently.
+   
+    Functions that take place concurrently (across Units):
+        - Quote resolution
+        - Expansion: inspection, interpretation
+        - Redirection interpretation
+        - Selection
+        - Is valid command
+            ...You just pass that information *in*:  
+            fn ______( str: text, bool: is_command)
+
+    enum ExpansionType {
+        Variable
+        FilePath
+        Subshell
+    }
+
+    enum Redir {
+        
+        
+    }
+
+    enum Selector {
+        None, 
+        LessThan(int),
+        GreaterThan(int),
+        Between(int, int),
+    }
+
+
+
+    enum Word {  // Expansion has already taken place.  
+        Command
+        Raw(text),
+        DoubleQuoted([Word], selector),     //Recursive call needed... All the way 
+        Quoted(text),                       //back to the begining!
+        Redirection(Redir),
+        Colon,
+    }
+
+
+    So this is what we would hand off for execution?  No not yet!  
+
+    struct Line {
+        command: Command,
+        arguments: [String] // ?
+        redirections: [Redirections]
+    }
+
+    where
+
+    enum Command{
+        Construct(Construct),
+        Builtin(String), // Or reference to function
+        Function(String), 
+        ExternalCommand(Filename), // Or other reference
+    }
+
+    enum Construct {
+        If,     // Let the 'if' command handle asserting that the condition is true
+        Elif, 
+        Else, 
+        For, 
+        While, 
+        Fn, 
+        Let, 
+    }
