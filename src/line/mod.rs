@@ -300,11 +300,11 @@ fn get_parts(rawline: &str) -> Result<Vec<String>> {
     }
 }
 
-fn determine_indentation(rawline: &str) -> usize {
+fn determine_indentation(line: &str) -> usize {
     let mut spaces: usize = 0;
     let mut indentation = 0;
 
-    for grapheme in rawline.graphemes(true) {
+    for grapheme in line.graphemes(true) {
         match grapheme {
             " " => {
                 if spaces == 3 {
@@ -314,12 +314,10 @@ fn determine_indentation(rawline: &str) -> usize {
                     spaces += 1;
                 }
             }
-
             "\t" => {
                 indentation += 1;
                 spaces = 0;
             }
-
             _ => {
                 break;
             }
@@ -344,82 +342,57 @@ fn determine_completeness(line: &str) -> bool {
     }
 
     let mut state = State::Unquoted;
-    let mut escaped_state: Option<State> = None;
+    let mut escaped_state = State::Unquoted; 
+    let mut found_escaped_newline = false;
 
     for grapheme in line.graphemes(true) {
-        match state {
+        found_escaped_newline = false;
+
+        state = match state {
             State::Unquoted => match grapheme {
-                "\'" => {
-                    state = State::SingleQuoted;
-                }
-                "\"" => {
-                    state = State::DoubleQuoted;
-                }
+                "\'" => { State::SingleQuoted }
+                "\"" => { State::DoubleQuoted }
                 "\\" => {
-                    escaped_state = Some(State::Unquoted);
-                    state = State::Escaped;
+                    escaped_state = State::Unquoted;
+                    State::Escaped
                 }
-                "|" => {
-                    state = State::FoundPipe;
-                }
-                _ => {}
+                "|" => { State::FoundPipe }
+                _ => { state }
             },
-
             State::SingleQuoted => match grapheme {
-                "\'" => {
-                    state = State::Unquoted;
-                }
-                _ => {}
+                "\'" => { State::Unquoted }
+                _ => { state }
             },
-
             State::DoubleQuoted => match grapheme {
-                "\"" => {
-                    state = State::Unquoted;
-                }
+                "\"" => { State::Unquoted }
                 "\\" => {
-                    escaped_state = Some(State::DoubleQuoted);
-                    state = State::Escaped;
+                    escaped_state = State::DoubleQuoted;
+                    State::Escaped
+                }
+                _ => { state }
+            },
+            State::FoundPipe => match grapheme {
+                " " | "\t" | "\n" => { state } // Ignore whitespace following pipe character
+                "\'" => { State::SingleQuoted }
+                "\"" => { State::DoubleQuoted }
+                _ => { State::Unquoted }
+            },
+            State::Escaped => {
+                if grapheme == "\n" {
+                    found_escaped_newline = true;
                 }
 
-                _ => {}
-            },
-            State::FoundPipe => {
-                match grapheme {
-                    "\'" => {
-                        state = State::SingleQuoted;
-                    }
-                    "\"" => {
-                        state = State::DoubleQuoted;
-                    }
-                    " " | "\t" | "\n" => {
-                        // Ignore whitespace following pipe character
-                    }
-                    _ => {
-                        state = State::Unquoted;
-                    }
-                }
+                escaped_state
             }
-            State::Escaped => {
-                match grapheme {
-                    "\n" => {
-                        // If newline character is escaped, then it is ignored
-                    }
-                    _ => {
-                        state = escaped_state.unwrap();
-                        escaped_state = None;
-                    }
-                }
-            }
-        }
+        };
     }
 
-    state == State::Unquoted
+    state == State::Unquoted && !found_escaped_newline
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::shell::Shell;
 
     #[test]
     fn determine_completeness_1() {
@@ -504,11 +477,53 @@ mod test {
     fn determine_completeness_14() {
         let line = "echo '!{cat file}' | cat \\\n echo one two three";
         assert_eq!(true, determine_completeness(line));
-    } 
+    }
 
     #[test]
     fn determine_completeness_15() {
         let line = "echo '!{cat file}' | cat \\\n echo one two three\n";
         assert_eq!(true, determine_completeness(line));
-    } 
+    }
+
+    #[test]
+    fn determine_completeness_16() {
+        let line = "echo '!{cat file}' | \"";
+        assert_eq!(false, determine_completeness(line));
+    }
+
+    #[test]
+    fn determine_completeness_17() {
+        let line = "echo '!{cat file}' | \\\n\"";
+        assert_eq!(false, determine_completeness(line));
+    }
+
+    #[test]
+    fn determine_completeness_18() {
+        let line = "echo '!{cat file}' \\\n\"";
+        assert_eq!(false, determine_completeness(line));
+    }
+
+    #[test]
+    fn determine_completeness_19() {
+        let line = "echo '!{cat file}' \" \\\n\"";
+        assert_eq!(true, determine_completeness(line));
+    }
+
+    #[test]
+    fn determine_completeness_20() {
+        let line = "echo '!{cat file}\' \" \\\n\"";
+        assert_eq!(true, determine_completeness(line));
+    }
+
+    #[test]
+    fn determine_completeness_21() {
+        let line = "\\\n\\\n\\\n\\\n";
+        assert_eq!(false, determine_completeness(line));
+    }
+
+    #[test]
+    fn determine_completeness_22() {
+        let line = "\\\n\\\n\\\n\\\n ";
+        assert_eq!(true, determine_completeness(line));
+    }
 }
