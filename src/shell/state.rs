@@ -5,7 +5,7 @@ pub struct State {
     no_exec: bool,
 
     // Each builtin and each external command sets (resets) this.
-    // In particular, shell constructs do not affect this.
+    // Shell constructs do not affect this.
     pub rv: i32,
 }
 

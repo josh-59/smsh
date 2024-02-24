@@ -53,6 +53,7 @@ impl Shell {
 
     pub fn run(&mut self) -> Result<()> {
         while let Some(mut line) = self.get_line()? {
+            line.separate(self)?;
             line.expand(self)?;
             line.select()?;
             line.execute(self)?;

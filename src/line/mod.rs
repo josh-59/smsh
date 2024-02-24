@@ -25,52 +25,49 @@ pub enum LineType {
     Empty,
 }
 
-// Should only ever be read-only
+// This struct identifies the source from which
+// the line came, and the line number from within that
+// source.  Used in error-reporting; should never be
+// modified after creation.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct LineID {
     pub source_kind: SourceKind,
     pub line_num: usize,
 }
 
-// Represents a logical line given to the shell.
+// A Line represents a logical line given to the shell.
 // A logical line can transcend physical lines by
 // quoting, by backslash escaping a newline, and by
 // terminating a line with a pipe operator.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Line {
-    raw_text: String, // Original string passed to Line.
-    line_type: LineType,
-    line_id: LineID,
+    raw_text: String,
+    complete: bool,
     words: Vec<Word>,
+    line_type: Option<LineType>,
+    line_id: LineID,
     indentation: usize,
 }
 
 impl Line {
+    // TODO: Line could be incomplete upon a call to this method.  It could
+    // be an escaped newline, or an unmatched quote.
     pub fn new(raw_text: String, line_num: usize, source_kind: SourceKind) -> Result<Line> {
         let line_id = LineID {
             source_kind,
             line_num,
         };
 
-        let indentation = get_indentation(&raw_text);
+        let indentation = determine_indentation(&raw_text);
 
-        // Get parts of line
-        let mut words = Vec::<Word>::new();
-        for word in get_parts(&raw_text)? {
-            words.push(Word::new(word)?);
-        }
-
-        let line_type = if words.len() > 0 {
-            get_line_type(&words[0])
-        } else {
-            LineType::Empty
-        };
+        let complete = determine_completeness(&raw_text);
 
         Ok(Line {
             raw_text,
-            line_type,
+            complete,
+            line_type: None,
+            words: Vec::new(),
             line_id,
-            words,
             indentation,
         })
     }
@@ -91,23 +88,7 @@ impl Line {
     }
 
     pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
-        match &self.line_type {
-            LineType::Normal => {
-                let mut pipeline = Pipeline::new(self, smsh)?;
-
-                if smsh.state().no_exec() {
-                    Ok(())
-                } else {
-                    pipeline.execute(smsh)
-                }
-            }
-            LineType::If | LineType::Elif | LineType::Else => r#if(smsh, self),
-            LineType::FunctionDefinition => r#fn(smsh, self),
-            LineType::For => r#for(smsh, self),
-            LineType::While => r#while(smsh, self),
-            LineType::Let => r#let(smsh, self),
-            LineType::Empty => Ok(()),
-        }
+        Ok(())
     }
 
     pub fn expand(&mut self, smsh: &mut Shell) -> Result<()> {
@@ -143,19 +124,40 @@ impl Line {
         self.indentation
     }
 
+    pub fn is_complete(&self) -> bool {
+        self.complete
+    }
+
     pub fn is_elif(&self) -> bool {
-        self.line_type == LineType::Elif
+        self.line_type == Some(LineType::Elif)
     }
 
     pub fn is_else(&self) -> bool {
-        self.line_type == LineType::Else
+        self.line_type == Some(LineType::Else)
     }
 
     pub fn raw_text(&self) -> &str {
         &self.raw_text
     }
-    pub fn source(&self) -> &SourceKind {
-        &self.line_id.source_kind
+
+    pub fn separate(&mut self, smsh: &Shell) -> Result<()> {
+        // Get parts of line
+        let mut words = Vec::<Word>::new();
+        for part in get_parts(&self.raw_text)? {
+            words.push(Word::new(part)?);
+        }
+
+        self.words = words;
+
+        // Line type should be stated after it's been inspected for completeness
+        // and correctness.
+        let line_type = if self.words.len() > 0 {
+            determine_line_type(self.words[0].text())
+        } else {
+            LineType::Empty
+        };
+
+        Ok(())
     }
 
     pub fn select(&mut self) -> Result<()> {
@@ -164,6 +166,10 @@ impl Line {
         }
 
         Ok(())
+    }
+
+    pub fn source(&self) -> &SourceKind {
+        &self.line_id.source_kind
     }
 
     pub fn words(&self) -> &Vec<Word> {
@@ -202,10 +208,9 @@ impl fmt::Display for Line {
     }
 }
 
-// TODO: This function should be changed:  Beginning with an "if" statement does not
-// imply that the line is correctly-formatted
-fn get_line_type(word: &Word) -> LineType {
-    match word.text() {
+// This function simply looks at the
+fn determine_line_type(line: &str) -> LineType {
+    match line {
         "if" => LineType::If,
         "elif" => LineType::Elif,
         "else" => LineType::Else,
@@ -217,88 +222,293 @@ fn get_line_type(word: &Word) -> LineType {
     }
 }
 
-// Breaks rawline into parts according to quoting rules.
-// Quotes and braces are preserved, (unquoted) whitespace is removed
-// TODO Implement escape via backslash \
+// Breaks rawline into parts to be analyzed later on.
+// Quotes and escapes are preserved; unquoted whitespace is removed
 fn get_parts(rawline: &str) -> Result<Vec<String>> {
-    #[derive(PartialEq, Eq)]
+    #[derive(PartialEq, Eq, Clone, Copy)]
     enum State {
-        SingleQuoted(usize), // usize reflects location of found quote
-        DoubleQuoted(usize),
+        SingleQuoted,
+        DoubleQuoted,
+        Escaped,
         Unquoted,
     }
 
-    let mut words = Vec::<String>::new();
-    let mut word = String::new();
+    let mut parts = Vec::<String>::new();
+    let mut part = String::new();
 
     let mut state = State::Unquoted;
+    let mut escaped_state: Option<State> = None;
 
-    for (i, grapheme) in rawline.graphemes(false).enumerate() {
+    for grapheme in rawline.graphemes(true) {
         match state {
             State::Unquoted => match grapheme {
                 " " | "\t" => {
-                    if !word.is_empty() {
-                        words.push(word);
-                        word = String::new();
+                    if !part.is_empty() {
+                        parts.push(part);
+                        part = String::new();
                     }
                 }
                 "\'" => {
-                    word.push_str(grapheme);
-                    state = State::SingleQuoted(i);
+                    part.push_str(grapheme);
+                    state = State::SingleQuoted;
                 }
                 "\"" => {
-                    word.push_str(grapheme);
-                    state = State::DoubleQuoted(i);
+                    part.push_str(grapheme);
+                    state = State::DoubleQuoted;
                 }
-
+                "\\" => {
+                    part.push_str(grapheme);
+                    escaped_state = Some(State::Unquoted);
+                    state = State::Escaped;
+                }
                 _ => {
-                    word.push_str(grapheme);
+                    part.push_str(grapheme);
                 }
             },
-            State::SingleQuoted(j) => {
-                word.push_str(grapheme);
+            State::SingleQuoted => {
+                part.push_str(grapheme);
                 if grapheme == "\'" {
                     state = State::Unquoted;
                 }
             }
-            State::DoubleQuoted(j) => {
-                word.push_str(grapheme);
+            State::DoubleQuoted => {
+                part.push_str(grapheme);
                 if grapheme == "\"" {
                     state = State::Unquoted;
+                } else if grapheme == "\\" {
+                    escaped_state = Some(State::DoubleQuoted);
+                    state = State::Escaped;
                 }
+            }
+            State::Escaped => {
+                part.push_str(grapheme);
+                state = escaped_state.unwrap();
             }
         }
     }
-    if !word.is_empty() {
-        words.push(word);
+    if !part.is_empty() {
+        parts.push(part);
     }
 
     match state {
-        State::SingleQuoted(i) => Err(anyhow!("Unmatched single quote.")),
-        State::DoubleQuoted(i) => Err(anyhow!("Unmatched double quote.")),
-        State::Unquoted => Ok(words),
+        State::SingleQuoted => Err(anyhow!("Unmatched single quote.")),
+        State::DoubleQuoted => Err(anyhow!("Unmatched double quote.")),
+        State::Escaped => Err(anyhow!(
+            "Unresolved terminal escaped newline (This should not happen!)"
+        )),
+        State::Unquoted => Ok(parts),
     }
 }
 
-fn get_indentation(rawline: &str) -> usize {
+fn determine_indentation(rawline: &str) -> usize {
     let mut spaces: usize = 0;
     let mut indentation = 0;
 
-    for ch in rawline.chars() {
-        if ch == ' ' {
-            if spaces == 3 {
+    for grapheme in rawline.graphemes(true) {
+        match grapheme {
+            " " => {
+                if spaces == 3 {
+                    indentation += 1;
+                    spaces = 0;
+                } else {
+                    spaces += 1;
+                }
+            }
+
+            "\t" => {
                 indentation += 1;
                 spaces = 0;
-            } else {
-                spaces += 1;
             }
-        } else if ch == '\t' {
-            indentation += 1;
-            spaces = 0;
-        } else {
-            break;
+
+            _ => {
+                break;
+            }
         }
     }
 
     indentation
+}
+
+// Simply determines if `line` is a complete logical line.  Returns false if
+// `line` contains an unmatched quote (single or double), or if `line` ends
+// with an escaped newline, or if `line` ends in a pipe operator (optionally
+// followed by whitespace).
+fn determine_completeness(line: &str) -> bool {
+    #[derive(PartialEq, Eq, Clone, Copy)]
+    enum State {
+        SingleQuoted,
+        DoubleQuoted,
+        Escaped,
+        FoundPipe,
+        Unquoted,
+    }
+
+    let mut state = State::Unquoted;
+    let mut escaped_state: Option<State> = None;
+
+    for grapheme in line.graphemes(true) {
+        match state {
+            State::Unquoted => match grapheme {
+                "\'" => {
+                    state = State::SingleQuoted;
+                }
+                "\"" => {
+                    state = State::DoubleQuoted;
+                }
+                "\\" => {
+                    escaped_state = Some(State::Unquoted);
+                    state = State::Escaped;
+                }
+                "|" => {
+                    state = State::FoundPipe;
+                }
+                _ => {}
+            },
+
+            State::SingleQuoted => match grapheme {
+                "\'" => {
+                    state = State::Unquoted;
+                }
+                _ => {}
+            },
+
+            State::DoubleQuoted => match grapheme {
+                "\"" => {
+                    state = State::Unquoted;
+                }
+                "\\" => {
+                    escaped_state = Some(State::DoubleQuoted);
+                    state = State::Escaped;
+                }
+
+                _ => {}
+            },
+            State::FoundPipe => {
+                match grapheme {
+                    "\'" => {
+                        state = State::SingleQuoted;
+                    }
+                    "\"" => {
+                        state = State::DoubleQuoted;
+                    }
+                    " " | "\t" | "\n" => {
+                        // Ignore whitespace following pipe character
+                    }
+                    _ => {
+                        state = State::Unquoted;
+                    }
+                }
+            }
+            State::Escaped => {
+                match grapheme {
+                    "\n" => {
+                        // If newline character is escaped, then it is ignored
+                    }
+                    _ => {
+                        state = escaped_state.unwrap();
+                        escaped_state = None;
+                    }
+                }
+            }
+        }
+    }
+
+    state == State::Unquoted
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::shell::Shell;
+
+    #[test]
+    fn determine_completeness_1() {
+        let line = "echo one two three four";
+        assert_eq!(true, determine_completeness(line));
+    }
+
+    #[test]
+    fn determine_completeness_2() {
+        let line = "echo one two | cat";
+        assert_eq!(true, determine_completeness(line));
+    }
+
+    #[test]
+    fn determine_completeness_3() {
+        let line = "echo \"one two\" | cat";
+        assert_eq!(true, determine_completeness(line));
+    }
+
+    #[test]
+    fn determine_completeness_4() {
+        let line = "echo \'one two\' | cat";
+        assert_eq!(true, determine_completeness(line));
+    }
+
+    #[test]
+    fn determine_completeness_5() {
+        let line = "echo \"!{cat file}\" | cat";
+        assert_eq!(true, determine_completeness(line));
+    }
+
+    #[test]
+    fn determine_completeness_6() {
+        let line = "echo \"!{cat file}\" |";
+        assert_eq!(false, determine_completeness(line));
+    }
+
+    #[test]
+    fn determine_completeness_7() {
+        let line = "echo '!{cat file}' |     ";
+        assert_eq!(false, determine_completeness(line));
+    }
+
+    #[test]
+    fn determine_completeness_8() {
+        let line = "echo \"!{cat file} ";
+        assert_eq!(false, determine_completeness(line));
+    }
+
+    #[test]
+    fn determine_completeness_9() {
+        let line = "echo '!{cat file} ";
+        assert_eq!(false, determine_completeness(line));
+    }
+
+    #[test]
+    fn determine_completeness_10() {
+        let line = "echo '!{cat file}' | cat \\";
+        assert_eq!(false, determine_completeness(line));
+    }
+
+    #[test]
+    fn determine_completeness_11() {
+        let line = "echo '!{cat file}' | cat \\
+";
+        assert_eq!(false, determine_completeness(line));
+    } // Line ends with escaped newline -> false
+
+    #[test]
+    fn determine_completeness_12() {
+        let line = "echo '!{cat file}' | cat \\  ";
+        assert_eq!(true, determine_completeness(line));
+    } // Line ends with escaped whitespace -> true
+
+    #[test]
+    fn determine_completeness_13() {
+        let line = "echo '!{cat file}' | cat \\\n";
+        assert_eq!(false, determine_completeness(line));
+    } // Line ends with escaped newline -> false
+
+    #[test]
+    fn determine_completeness_14() {
+        let line = "echo '!{cat file}' | cat \\\n echo one two three";
+        assert_eq!(true, determine_completeness(line));
+    } 
+
+    #[test]
+    fn determine_completeness_15() {
+        let line = "echo '!{cat file}' | cat \\\n echo one two three\n";
+        assert_eq!(true, determine_completeness(line));
+    } 
 }
