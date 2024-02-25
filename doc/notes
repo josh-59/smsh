@@ -13,7 +13,7 @@
     ought to be able to make it concurrent word-wise, if every word is treated
     the same.  
 
-    Then you could put your tests as concurrent, if there are many of them
+    Then you could put your (sanity) tests as concurrent, if there are many of them
 
     So the first pass would have to deal with quotes-- a collection of functions
     that result in a collection of enums,

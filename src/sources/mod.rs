@@ -5,6 +5,8 @@
 //      Sources::sources could be a vec of tuples (Box<dyn Source>, SourceKind)
 use std::collections::VecDeque;
 
+use unicode_segmentation::UnicodeSegmentation;
+
 use anyhow::Result;
 
 use super::line::Line;
@@ -30,10 +32,9 @@ pub trait Source {
     fn print_error(&mut self) -> Result<()>;
 }
 
-// TODO: Sources::sources should only contain tty, scripts and functions.
 pub struct Sources {
     sources: Vec<Box<dyn Source>>,
-    buffer: VecDeque<Line>,
+    buffer: VecDeque<Line>, // Only contains complete lines
 }
 
 impl Sources {
@@ -41,7 +42,6 @@ impl Sources {
         Sources { sources: vec![], buffer: VecDeque::<Line>::new()}
     }
 
-    // TODO: Check if last character is \, and get another line if it is.  
     pub fn get_line(&mut self) -> Result<Option<Line>> {
         if let Some(line) = self.buffer.pop_front() {
             Ok(Some(line))
@@ -121,5 +121,205 @@ impl Sources {
                 let _ = source.print_error();
             }
         }
+    }
+}
+
+
+// Determines if `text` is a complete logical line.  Ignores newlines
+fn is_complete(text: &str) -> bool {
+    #[derive(PartialEq, Eq, Clone, Copy)]
+    enum State {
+        SingleQuoted,
+        DoubleQuoted,
+        Escaped,
+        FoundPipe,
+        Unquoted,
+    }
+
+    let mut state = State::Unquoted;
+    let mut escaped_state = State::Unquoted;
+    let mut found_escaped_newline = false;
+
+    for grapheme in text.graphemes(true) {
+        found_escaped_newline = false;
+
+        state = match state {
+            State::Unquoted => match grapheme {
+                "\'" => State::SingleQuoted,
+                "\"" => State::DoubleQuoted,
+                "\\" => {
+                    escaped_state = State::Unquoted;
+                    State::Escaped
+                }
+                "|" => State::FoundPipe,
+                _ => state,
+            },
+            State::SingleQuoted => match grapheme {
+                "\'" => State::Unquoted,
+                _ => state,
+            },
+            State::DoubleQuoted => match grapheme {
+                "\"" => State::Unquoted,
+                "\\" => {
+                    escaped_state = State::DoubleQuoted;
+                    State::Escaped
+                }
+                _ => state,
+            },
+            State::FoundPipe => match grapheme {
+                " " | "\t" | "\n" => state, // Ignore whitespace following pipe character
+                "\'" => State::SingleQuoted,
+                "\"" => State::DoubleQuoted,
+                _ => State::Unquoted,
+            },
+            State::Escaped => {
+                if grapheme == "\n" {
+                    found_escaped_newline = true;
+                }
+
+                escaped_state
+            }
+        };
+    }
+
+    state == State::Unquoted && !found_escaped_newline
+}
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn determine_completeness_1() {
+        let text = "echo one two three four";
+        assert!(is_complete(text))
+    }
+
+    #[test]
+    fn determine_completeness_2() {
+        let text = "echo one two | cat";
+        assert!(is_complete(text))
+    }
+
+    #[test]
+    fn determine_completeness_3() {
+        let text = "echo \"one two\" | cat";
+        assert!(is_complete(text))
+    }
+
+    #[test]
+    fn determine_completeness_4() {
+        let text = "echo \'one two\' | cat";
+        assert!(is_complete(text))
+    }
+
+    #[test]
+    fn determine_completeness_5() {
+        let text = "echo \"!{cat file}\" | cat";
+        assert!(is_complete(text))
+    }
+
+    #[test]
+    fn determine_completeness_6() {
+        let text = "echo \"!{cat file}\" |";
+        assert!(!is_complete(text))
+    }
+
+    #[test]
+    fn determine_completeness_7() {
+        let text = "echo '!{cat file}' |     ";
+        assert!(!is_complete(text))
+    }
+
+    #[test]
+    fn determine_completeness_8() {
+        let text = "echo \"!{cat file} ";
+        assert!(!is_complete(text))
+    }
+
+    #[test]
+    fn determine_completeness_9() {
+        let text = "echo '!{cat file} ";
+        assert!(!is_complete(text))
+    }
+
+    #[test]
+    fn determine_completeness_10() {
+        let text = "echo '!{cat file}' | cat \\";
+        assert!(!is_complete(text))
+    }
+
+    #[test]
+    fn determine_completeness_11() {
+        let text = "echo '!{cat file}' | cat \\
+";
+        assert!(!is_complete(text))
+    } // Line ends with escaped newline -> false
+
+    #[test]
+    fn determine_completeness_12() {
+        let text = "echo '!{cat file}' | cat \\  ";
+        assert!(is_complete(text))
+    } // Line ends with escaped whitespace -> true
+
+    #[test]
+    fn determine_completeness_13() {
+        let text = "echo '!{cat file}' | cat \\\n";
+        assert!(!is_complete(text))
+    } // Line ends with escaped newline -> false
+
+    #[test]
+    fn determine_completeness_14() {
+        let text = "echo '!{cat file}' | cat \\\n echo one two three";
+        assert!(is_complete(text))
+    }
+
+    #[test]
+    fn determine_completeness_15() {
+        let text = "echo '!{cat file}' | cat \\\n echo one two three\n";
+        assert!(is_complete(text))
+    }
+
+    #[test]
+    fn determine_completeness_16() {
+        let text = "echo '!{cat file}' | \"";
+        assert!(!is_complete(text))
+    }
+
+    #[test]
+    fn determine_completeness_17() {
+        let text = "echo '!{cat file}' | \\\n\"";
+        assert!(!is_complete(text))
+    }
+
+    #[test]
+    fn determine_completeness_18() {
+        let text = "echo '!{cat file}' \\\n\"";
+        assert!(!is_complete(text))
+    }
+
+    #[test]
+    fn determine_completeness_19() {
+        let text = "echo '!{cat file}' \" \\\n\"";
+        assert!(is_complete(text))
+    }
+
+    #[test]
+    fn determine_completeness_20() {
+        let text = "echo '!{cat file}\' \" \\\n\"";
+        assert!(is_complete(text))
+    }
+
+    #[test]
+    fn determine_completeness_21() {
+        let text = "\\\n\\\n\\\n\\\n";
+        assert!(!is_complete(text))
+    }
+
+    #[test]
+    fn determine_completeness_22() {
+        let text = "\\\n\\\n\\\n\\\n ";
+        assert!(is_complete(text))
     }
 }

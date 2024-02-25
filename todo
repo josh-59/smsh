@@ -5,8 +5,11 @@
     >     for bar in baz:
     >>         echo something
     >>                      
-    $
-    $ # Note: No spaces or tabs escapes both indentation
+    >>
+    $ 
+
+    We want to allow empty lines in blocks of input, to make scripts more 
+    legible; we also want two empty lines to demarcate the end of a block.
 
 2) Apply separation and selection logic to strings
     e.g., 
@@ -23,7 +26,21 @@
 
     $ # 'load' a file, where file is a collection of name=value strings.
     $ # Works for 'name = value' or 'name    = value' or 'name=value' or....
-    $ for line in !{cat file | split}:
+    $ for line in ${cat file | split}:
     >     let {line} 
 
 6) "Arrays" module:  Implement functions for push, pop, append, etcetera
+
+7) `let mut var = val` ?  
+    Bash has a special command for this, `readonly`
+        ...But, such a line is useless if later on you can simply call 
+            `let --make-mut var`
+        So, it must be the case that, if a variable *isn't* declared mutable,
+        then it's forever immutable.  
+        More, then you would have lines of the form,
+            `let var = {var}`
+        setting `var` immutable.  
+
+8)  We don't want there to be two variables with the same name-- so `let` should
+    forbid the creation of 'local' variables with the same names as environment
+    variables-- AND expansion should look in environment first.

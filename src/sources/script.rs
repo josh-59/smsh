@@ -15,6 +15,10 @@ pub struct Script {
 }
 
 impl Script {
+    // TODO:  This function reads the entire script into memory before
+    // dolling it out; should probably read a (logical) line at a time.
+    // On the other hand, though, even a large script (10000 lines) is
+    // less than 10 MB, so...  
     pub fn build_source(path: PathBuf) -> Result<Box<dyn Source>> {
         let body = read_to_string(&path)?
             .lines()

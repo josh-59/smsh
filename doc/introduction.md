@@ -7,8 +7,13 @@ Overview
 `smsh` is a shell designed to be learned.  The principal means by which it
 realizes this goal is simplicity.  That and consistency.  Once learned, `smsh`
 strives to be a shell that stays out of your way, like a good desktop
-environment.  
+environment.
 
+"Performant" is not the first description of `smsh` that comes to mind.  Many tests 
+are performed on each line of input, as it is parsed and understood.  For example,
+the "kind" of command (shell function, builtin, external...) is determined before
+the line is OK'd for execution; during this step, it is discovered if the command
+does not exist, and reported to the user.  In this way, `smsh` 
 
 
 To do that, they employ a main loop consisting of just a few steps:
@@ -34,7 +39,8 @@ What does it mean?
 Expansion
 ---------
 
-Expansion is the replacement of text with some other text.
+Expansion is the replacement of some text with some other text; this is sometimes
+called "macro processing".  
 All shells support expansion; in `smsh`, all expansions take place
 within braces, `{}`.
 We can, for instance, declare a variable with `let`, then
