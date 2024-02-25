@@ -8,6 +8,7 @@ use reedline::{Prompt, PromptEditMode, PromptHistorySearch, Reedline, Signal};
 
 use super::{Source, SourceKind};
 use crate::line::Line;
+use crate::sources::is_complete;
 
 mod line_validator;
 use line_validator::SmshLineValidator;
@@ -26,7 +27,7 @@ impl Tty {
 
         Box::new(Tty {
             line_editor,
-            line_num: 0,
+            line_num: 1,  // TODO: line_num should probably reflect physical line, not logical...
             last_line: None,
             buffer: VecDeque::<Line>::new(),
         })
@@ -41,33 +42,38 @@ impl Source for Tty {
 
         match self.line_editor.read_line(&SimplePrompt)? {
             Signal::Success(buffer) => {
-                self.line_num += 1;
-
                 // Since we want blocks to be given the Reedline multiline editing treatment,
-                // we must collect a block of lines in a single line, then decompose it, then
+                // we must collect a block of lines in a single line (buffer), then decompose it, then
                 // serve it up later (using self.buffer).
-                let line = if let Some((first_line, remainder)) = buffer.split_once(":\n") {
-                    let mut first_line = first_line.to_string();
-                    first_line.push(':'); // This is retained for processing later on
-                    let first_line =
-                        Line::new(first_line.to_string(), self.line_num, SourceKind::Tty)?;
+                //
+                // NOTE: read_line() (above) returns Signal::Success(buffer) only if buffer has passed
+                // completeness tests (notably, is_complete(), found in sources/mod.rs).  Hence,
+                // we can assume that line is complete.  It may, however, contain multiple physical
+                // lines (or even a block).
+                //
+                // So, first we collect the logical lines in a vector...
+                let mut logical_lines = Vec::<String>::new();
+                let mut line = String::new();
+                for physical_line in buffer.split("\n") {  // Implicitly removes newline characters
+                    line.push_str(physical_line); // Implicitly ignores physical lines of length 0
 
-                    for line in remainder.split('\n') {
-                        self.line_num += 1;
-                        self.buffer.push_back(Line::new(
-                            line.to_string(),
-                            self.line_num,
-                            SourceKind::Tty,
-                        )?);
+                    if line.len() > 0 && is_complete(line.as_str()) {
+                        logical_lines.push(line);
+                        line = String::new();
                     }
+                }
 
-                    first_line
+                for line in logical_lines {
+                    self.buffer
+                        .push_back(Line::new(line, self.line_num, SourceKind::Tty)?);
+                    self.line_num += 1;
+                }
+
+                if let Some(line) = self.buffer.pop_front() {
+                    Ok(Some(line))
                 } else {
-                    Line::new(buffer, self.line_num, SourceKind::Tty)?
-                };
-                self.last_line = Some(line.clone());
-
-                Ok(Some(line))
+                    Ok(Some(Line::new("".to_string(), self.line_num, SourceKind::Tty)?))
+                }
             }
             Signal::CtrlC => Ok(Some(
                 Line::new(String::new(), self.line_num, SourceKind::Tty).unwrap(),
