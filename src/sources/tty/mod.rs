@@ -45,7 +45,7 @@ impl Source for Tty {
 
                 // Since we want blocks to be given the Reedline multiline editing treatment,
                 // we must collect a block of lines in a single line, then decompose it, then
-                // serve it up later using self.buffer.
+                // serve it up later (using self.buffer).
                 let line = if let Some((first_line, remainder)) = buffer.split_once(":\n") {
                     let mut first_line = first_line.to_string();
                     first_line.push(':'); // This is retained for processing later on

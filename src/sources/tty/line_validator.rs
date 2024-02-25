@@ -19,7 +19,8 @@ impl Validator for SmshLineValidator {
     }
 }
 
-// A block is complete if it ends with an empty line
+// A block is complete if it ends with a line
+// of indentation 0
 fn contains_finished_block(line: &str) -> bool {
     line.ends_with("\n\n") ||
     line.ends_with("\n \n") ||
