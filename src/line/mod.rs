@@ -42,7 +42,6 @@ pub struct LineID {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Line {
     raw_text: String,
-    complete: bool,
     words: Vec<Word>,
     line_type: Option<LineType>,
     line_id: LineID,
@@ -60,11 +59,8 @@ impl Line {
 
         let indentation = determine_indentation(&raw_text);
 
-        let complete = determine_completeness(&raw_text);
-
         Ok(Line {
             raw_text,
-            complete,
             line_type: None,
             words: Vec::new(),
             line_id,
@@ -125,7 +121,62 @@ impl Line {
     }
 
     pub fn is_complete(&self) -> bool {
-        self.complete
+        #[derive(PartialEq, Eq, Clone, Copy)]
+        enum State {
+            SingleQuoted,
+            DoubleQuoted,
+            Escaped,
+            FoundPipe,
+            Unquoted,
+        }
+
+        let mut state = State::Unquoted;
+        let mut escaped_state = State::Unquoted;
+        let mut found_escaped_newline = false;
+
+        for grapheme in self.raw_text.graphemes(true) {
+            found_escaped_newline = false;
+
+            state = match state {
+                State::Unquoted => match grapheme {
+                    "\'" => State::SingleQuoted,
+                    "\"" => State::DoubleQuoted,
+                    "\\" => {
+                        escaped_state = State::Unquoted;
+                        State::Escaped
+                    }
+                    "|" => State::FoundPipe,
+                    _ => state,
+                },
+                State::SingleQuoted => match grapheme {
+                    "\'" => State::Unquoted,
+                    _ => state,
+                },
+                State::DoubleQuoted => match grapheme {
+                    "\"" => State::Unquoted,
+                    "\\" => {
+                        escaped_state = State::DoubleQuoted;
+                        State::Escaped
+                    }
+                    _ => state,
+                },
+                State::FoundPipe => match grapheme {
+                    " " | "\t" | "\n" => state, // Ignore whitespace following pipe character
+                    "\'" => State::SingleQuoted,
+                    "\"" => State::DoubleQuoted,
+                    _ => State::Unquoted,
+                },
+                State::Escaped => {
+                    if grapheme == "\n" {
+                        found_escaped_newline = true;
+                    }
+
+                    escaped_state
+                }
+            };
+        }
+
+        state == State::Unquoted && !found_escaped_newline
     }
 
     pub fn is_elif(&self) -> bool {
@@ -327,203 +378,162 @@ fn determine_indentation(line: &str) -> usize {
     indentation
 }
 
-// Simply determines if `line` is a complete logical line.  Returns false if
-// `line` contains an unmatched quote (single or double), or if `line` ends
-// with an escaped newline, or if `line` ends in a pipe operator (optionally
-// followed by whitespace).
-fn determine_completeness(line: &str) -> bool {
-    #[derive(PartialEq, Eq, Clone, Copy)]
-    enum State {
-        SingleQuoted,
-        DoubleQuoted,
-        Escaped,
-        FoundPipe,
-        Unquoted,
-    }
-
-    let mut state = State::Unquoted;
-    let mut escaped_state = State::Unquoted; 
-    let mut found_escaped_newline = false;
-
-    for grapheme in line.graphemes(true) {
-        found_escaped_newline = false;
-
-        state = match state {
-            State::Unquoted => match grapheme {
-                "\'" => { State::SingleQuoted }
-                "\"" => { State::DoubleQuoted }
-                "\\" => {
-                    escaped_state = State::Unquoted;
-                    State::Escaped
-                }
-                "|" => { State::FoundPipe }
-                _ => { state }
-            },
-            State::SingleQuoted => match grapheme {
-                "\'" => { State::Unquoted }
-                _ => { state }
-            },
-            State::DoubleQuoted => match grapheme {
-                "\"" => { State::Unquoted }
-                "\\" => {
-                    escaped_state = State::DoubleQuoted;
-                    State::Escaped
-                }
-                _ => { state }
-            },
-            State::FoundPipe => match grapheme {
-                " " | "\t" | "\n" => { state } // Ignore whitespace following pipe character
-                "\'" => { State::SingleQuoted }
-                "\"" => { State::DoubleQuoted }
-                _ => { State::Unquoted }
-            },
-            State::Escaped => {
-                if grapheme == "\n" {
-                    found_escaped_newline = true;
-                }
-
-                escaped_state
-            }
-        };
-    }
-
-    state == State::Unquoted && !found_escaped_newline
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
 
     #[test]
     fn determine_completeness_1() {
-        let line = "echo one two three four";
-        assert_eq!(true, determine_completeness(line));
+        let text = "echo one two three four";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(true, line.is_complete());
     }
 
     #[test]
     fn determine_completeness_2() {
-        let line = "echo one two | cat";
-        assert_eq!(true, determine_completeness(line));
+        let text = "echo one two | cat";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(true, line.is_complete());
     }
 
     #[test]
     fn determine_completeness_3() {
-        let line = "echo \"one two\" | cat";
-        assert_eq!(true, determine_completeness(line));
+        let text = "echo \"one two\" | cat";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(true, line.is_complete());
     }
 
     #[test]
     fn determine_completeness_4() {
-        let line = "echo \'one two\' | cat";
-        assert_eq!(true, determine_completeness(line));
+        let text = "echo \'one two\' | cat";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(true, line.is_complete());
     }
 
     #[test]
     fn determine_completeness_5() {
-        let line = "echo \"!{cat file}\" | cat";
-        assert_eq!(true, determine_completeness(line));
+        let text = "echo \"!{cat file}\" | cat";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(true, line.is_complete());
     }
 
     #[test]
     fn determine_completeness_6() {
-        let line = "echo \"!{cat file}\" |";
-        assert_eq!(false, determine_completeness(line));
+        let text = "echo \"!{cat file}\" |";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(false, line.is_complete());
     }
 
     #[test]
     fn determine_completeness_7() {
-        let line = "echo '!{cat file}' |     ";
-        assert_eq!(false, determine_completeness(line));
+        let text = "echo '!{cat file}' |     ";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(false, line.is_complete());
     }
 
     #[test]
     fn determine_completeness_8() {
-        let line = "echo \"!{cat file} ";
-        assert_eq!(false, determine_completeness(line));
+        let text = "echo \"!{cat file} ";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(false, line.is_complete());
     }
 
     #[test]
     fn determine_completeness_9() {
-        let line = "echo '!{cat file} ";
-        assert_eq!(false, determine_completeness(line));
+        let text = "echo '!{cat file} ";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(false, line.is_complete());
     }
 
     #[test]
     fn determine_completeness_10() {
-        let line = "echo '!{cat file}' | cat \\";
-        assert_eq!(false, determine_completeness(line));
+        let text = "echo '!{cat file}' | cat \\";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(false, line.is_complete());
     }
 
     #[test]
     fn determine_completeness_11() {
-        let line = "echo '!{cat file}' | cat \\
+        let text = "echo '!{cat file}' | cat \\
 ";
-        assert_eq!(false, determine_completeness(line));
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(false, line.is_complete());
     } // Line ends with escaped newline -> false
 
     #[test]
     fn determine_completeness_12() {
-        let line = "echo '!{cat file}' | cat \\  ";
-        assert_eq!(true, determine_completeness(line));
+        let text = "echo '!{cat file}' | cat \\  ";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(true, line.is_complete());
     } // Line ends with escaped whitespace -> true
 
     #[test]
     fn determine_completeness_13() {
-        let line = "echo '!{cat file}' | cat \\\n";
-        assert_eq!(false, determine_completeness(line));
+        let text = "echo '!{cat file}' | cat \\\n";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(false, line.is_complete());
     } // Line ends with escaped newline -> false
 
     #[test]
     fn determine_completeness_14() {
-        let line = "echo '!{cat file}' | cat \\\n echo one two three";
-        assert_eq!(true, determine_completeness(line));
+        let text = "echo '!{cat file}' | cat \\\n echo one two three";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(true, line.is_complete());
     }
 
     #[test]
     fn determine_completeness_15() {
-        let line = "echo '!{cat file}' | cat \\\n echo one two three\n";
-        assert_eq!(true, determine_completeness(line));
+        let text = "echo '!{cat file}' | cat \\\n echo one two three\n";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(true, line.is_complete());
     }
 
     #[test]
     fn determine_completeness_16() {
-        let line = "echo '!{cat file}' | \"";
-        assert_eq!(false, determine_completeness(line));
+        let text = "echo '!{cat file}' | \"";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(false, line.is_complete());
     }
 
     #[test]
     fn determine_completeness_17() {
-        let line = "echo '!{cat file}' | \\\n\"";
-        assert_eq!(false, determine_completeness(line));
+        let text = "echo '!{cat file}' | \\\n\"";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(false, line.is_complete());
     }
 
     #[test]
     fn determine_completeness_18() {
-        let line = "echo '!{cat file}' \\\n\"";
-        assert_eq!(false, determine_completeness(line));
+        let text = "echo '!{cat file}' \\\n\"";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(false, line.is_complete());
     }
 
     #[test]
     fn determine_completeness_19() {
-        let line = "echo '!{cat file}' \" \\\n\"";
-        assert_eq!(true, determine_completeness(line));
+        let text = "echo '!{cat file}' \" \\\n\"";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(true, line.is_complete());
     }
 
     #[test]
     fn determine_completeness_20() {
-        let line = "echo '!{cat file}\' \" \\\n\"";
-        assert_eq!(true, determine_completeness(line));
+        let text = "echo '!{cat file}\' \" \\\n\"";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(true, line.is_complete());
     }
 
     #[test]
     fn determine_completeness_21() {
-        let line = "\\\n\\\n\\\n\\\n";
-        assert_eq!(false, determine_completeness(line));
+        let text = "\\\n\\\n\\\n\\\n";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(false, line.is_complete());
     }
 
     #[test]
     fn determine_completeness_22() {
-        let line = "\\\n\\\n\\\n\\\n ";
-        assert_eq!(true, determine_completeness(line));
+        let text = "\\\n\\\n\\\n\\\n ";
+        let line = Line::new(text.to_string(), 1, SourceKind::Tty).unwrap();
+        assert_eq!(true, line.is_complete());
     }
 }
