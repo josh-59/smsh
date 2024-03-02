@@ -1,10 +1,12 @@
 use std::borrow::Cow;
 use std::boxed::Box;
 use std::collections::VecDeque;
+use std::env::current_dir;
 
 use anyhow::Result;
 use nix::unistd;
 use reedline::{Prompt, PromptEditMode, PromptHistorySearch, Reedline, Signal};
+use crossterm::style::Stylize;
 
 use super::{Source, SourceKind};
 use crate::line::Line;
@@ -35,6 +37,7 @@ impl Tty {
 }
 
 impl Source for Tty {
+    // TODO: We could make this faster
     fn get_line(&mut self) -> Result<Option<Line>> {
         if let Some(line) = self.buffer.pop_front() {
             return Ok(Some(line));
@@ -50,10 +53,10 @@ impl Source for Tty {
                 // completeness tests (notably, is_complete(), found in sources/mod.rs).  Hence,
                 // we can assume that line is complete.  It may, however, contain multiple physical
                 // lines (or even a block).
-                //
-                // So, first we collect the logical lines in a vector...
                 let mut logical_lines = Vec::<String>::new();
                 let mut line = String::new();
+
+                // So, first we collect the logical lines in a vector...
                 for physical_line in buffer.split("\n") {  // Implicitly removes newline characters
                     line.push_str(physical_line); // Implicitly ignores physical lines of length 0
 
@@ -72,7 +75,9 @@ impl Source for Tty {
                 if let Some(line) = self.buffer.pop_front() {
                     Ok(Some(line))
                 } else {
-                    Ok(Some(Line::new("".to_string(), self.line_num, SourceKind::Tty)?))
+                    let empty_line = Line::new("".to_string(), self.line_num, SourceKind::Tty)?;
+                    self.line_num += 1;
+                    Ok(Some(empty_line))
                 }
             }
             Signal::CtrlC => Ok(Some(
@@ -99,11 +104,25 @@ struct SimplePrompt;
 
 impl Prompt for SimplePrompt {
     fn render_prompt_left(&self) -> Cow<'_, str> {
-        let prompt_string = if unistd::getuid().is_root() {
-            "# ".to_string()
+        let mut prompt_string = String::new();
+
+        match current_dir() {
+            Ok(path) => {
+                if let Some(s) = path.to_str() {
+                    prompt_string.push_str(s);
+                }
+            }
+            Err(e) => {}
+        }
+
+        if unistd::getuid().is_root() {
+            prompt_string.push_str("# ");
+            prompt_string = prompt_string.red().to_string();
         } else {
-            "$ ".to_string()
+            prompt_string.push_str("$ ");
         };
+
+        prompt_string = prompt_string.bold().to_string();
         Cow::Owned(prompt_string)
     }
 
