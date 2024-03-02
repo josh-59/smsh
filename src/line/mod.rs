@@ -148,8 +148,8 @@ impl Line {
     pub fn separate(&mut self) -> Result<()> {
         // Break logical line into parts according to quoting rules
         let mut tokens = Vec::<Token>::new();
-        for part in get_parts(&self.raw_text)? {
-            tokens.push(Token::new(part)?);
+        for token in get_tokens(&self.raw_text)? {
+            tokens.push(Token::new(token)?);
         }
 
         self.tokens = tokens;
@@ -230,10 +230,10 @@ fn determine_line_type(line: &str) -> LineType {
     }
 }
 
-// Breaks rawline into parts according to quoting rules.
+// Breaks rawline into parts according to quoting rules, yielding tokens.
 // Quotes and escapes are preserved; unquoted whitespace is removed
 // Selection remains appended to part.
-fn get_parts(rawline: &str) -> Result<Vec<String>> {
+fn get_tokens(rawline: &str) -> Result<Vec<String>> {
     #[derive(PartialEq, Eq, Clone, Copy)]
     enum State {
         SingleQuoted,
