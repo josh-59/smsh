@@ -227,8 +227,8 @@ impl fmt::Display for Line {
 
 // TODO: Remove! This functionality is not even close to being
 // complete; should probably be elsewhere...
-fn determine_line_type(line: &str) -> LineType {
-    match line {
+fn determine_line_type(first_token: &str) -> LineType {
+    match first_token{
         "if" => LineType::ShellConstruct(Construct::If),
         "elif" => LineType::ShellConstruct(Construct::Elif),
         "else" => LineType::ShellConstruct(Construct::Else),
