@@ -55,32 +55,31 @@ fn get_selector(text: &str) -> Option<(String, String)> {
 // xxxx => Selection::Invalid
 fn determine_selection(selection_text: &str) -> Result<Selection> {
     enum State {
+        EnteringLoop,
         OnFirstNum,
         FoundFirstPeriod,
         FoundSecondPeriod,
         Invalid,
-        EmptyStr,
     }
 
-    let mut state = match selection_text.chars().nth(0) {
-        Some(ch) => {
-            if ch == '.' {
-                State::FoundFirstPeriod
-            } else if ch.is_ascii_digit() {
-                State::OnFirstNum
-            } else {
-                State::Invalid
-            }
-        }
-        None => State::EmptyStr,
-    };
-
+    let mut state = State::EnteringLoop;
     let mut first_num: usize = 0;
     let mut second_num: usize = 0;
 
     // TODO:  Change to selector.graphemes?
     for ch in selection_text.chars() {
         match state {
+            State::EnteringLoop => {
+                if ch == '.' {
+                    state = State::FoundFirstPeriod;
+                } else if ch.is_ascii_digit() {
+                    first_num = ch.to_digit(10).unwrap() as usize;
+                    state = State::OnFirstNum;
+                } else {
+                    state = State::Invalid;
+                    break;
+                }
+            }
             State::OnFirstNum => {
                 if ch.is_ascii_digit() {
                     first_num *= 10;
@@ -106,14 +105,14 @@ fn determine_selection(selection_text: &str) -> Result<Selection> {
                     state = State::Invalid;
                 }
             }
-            State::Invalid | State::EmptyStr => break,
+            State::Invalid => break,
         }
     }
 
     match state {
+        State::EnteringLoop => Ok(Selection::None),
         State::OnFirstNum => Ok(Selection::Index(first_num)),
         State::FoundSecondPeriod => Ok(Selection::Slice(first_num, second_num)),
-        State::EmptyStr => Ok(Selection::None),
         State::Invalid | State::FoundFirstPeriod => {
             Err(anyhow!("Invalid selection [{}]", selection_text))
         }
