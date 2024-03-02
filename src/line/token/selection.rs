@@ -21,8 +21,8 @@ pub enum Selection {
 
 // Returns text with selector removed.
 pub fn get_selection(text: &str) -> Result<(String, Selection)> {
-    if let Some((text, selector)) = get_selector(text) {
-        let selection = _get_selection(selector)?;
+    if let Some((text, selection_text)) = get_selector(text) {
+        let selection = determine_selection(selection_text)?;
         Ok((text, selection))
     } else {
         Ok((text.to_string(), Selection::All))
@@ -51,7 +51,7 @@ fn get_selector(text: &str) -> Option<(String, String)> {
     }
 }
 
-fn _get_selection(selector: String) -> Result<Selection> {
+fn determine_selection(selector: String) -> Result<Selection> {
     let mut first_num: usize = 0;
     let mut second_num: usize = 0;
     let mut state = State::OnFirstNum;
@@ -152,7 +152,7 @@ mod test {
     fn _get_selection_test_1() {
         assert_eq!(
             Selection::Index(0),
-            _get_selection("0".to_string()).unwrap()
+            determine_selection("0".to_string()).unwrap()
         );
     }
 
@@ -160,7 +160,7 @@ mod test {
     fn _get_selection_test_2() {
         assert_eq!(
             Selection::Index(10),
-            _get_selection("10".to_string()).unwrap()
+            determine_selection("10".to_string()).unwrap()
         );
     }
 
@@ -168,7 +168,7 @@ mod test {
     fn _get_selection_test_3() {
         assert_eq!(
             Selection::Slice(0, 5),
-            _get_selection("0..5".to_string()).unwrap()
+            determine_selection("0..5".to_string()).unwrap()
         );
     }
 
@@ -176,7 +176,7 @@ mod test {
     fn _get_selection_test_4() {
         assert_eq!(
             Selection::Slice(0, 10),
-            _get_selection("0..10".to_string()).unwrap()
+            determine_selection("0..10".to_string()).unwrap()
         );
     }
 
@@ -184,7 +184,7 @@ mod test {
     fn _get_selection_test_5() {
         assert_eq!(
             Selection::Slice(10, 10),
-            _get_selection("10..10".to_string()).unwrap()
+            determine_selection("10..10".to_string()).unwrap()
         );
     }
 
@@ -192,7 +192,7 @@ mod test {
     fn _get_selection_test_6() {
         assert_eq!(
             Selection::Slice(0, 10),
-            _get_selection("..10".to_string()).unwrap()
+            determine_selection("..10".to_string()).unwrap()
         );
     }
 
@@ -200,26 +200,26 @@ mod test {
     fn _get_selection_test_7() {
         assert_eq!(
             Selection::Slice(3, 0),
-            _get_selection("3..".to_string()).unwrap()
+            determine_selection("3..".to_string()).unwrap()
         );
     }
 
     #[test]
     fn _get_selection_test_8() {
-        assert!(_get_selection("1...10".to_string()).is_err());
+        assert!(determine_selection("1...10".to_string()).is_err());
     }
 
     #[test]
     fn _get_selection_test_9() {
-        assert!(_get_selection("...10".to_string()).is_err());
+        assert!(determine_selection("...10".to_string()).is_err());
     }
 
     #[test]
     fn _get_selection_test_10() {
-        assert!(_get_selection("10...".to_string()).is_err());
+        assert!(determine_selection("10...".to_string()).is_err());
     }
     #[test]
     fn _get_selection_test_11() {
-        assert!(_get_selection("a...b".to_string()).is_err());
+        assert!(determine_selection("a...b".to_string()).is_err());
     }
 }
