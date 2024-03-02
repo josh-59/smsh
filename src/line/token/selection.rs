@@ -8,6 +8,7 @@ use anyhow::{anyhow, Result};
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Selection {
     All,
+    None,
     Index(usize),
     Slice(usize, usize), // Omitted indices are represented by value zero.
 }
@@ -44,25 +45,40 @@ fn get_selector(text: &str) -> Option<(String, String)> {
     }
 }
 
-// selector is an &str of one of the following forms:
-// a..b
-// a..
-// ..b
-// a
-// where a, b are integers
+// If a and b are integers, this function maps &str `selection_text`
+// as follows:
+// a..b => Selection::Slice(a, b)
+// a.. => Selection::GreaterThan(a)
+// ..b => Selection::LessThan(b)
+// a => Selection::Index(a)
+//   => Selection::None
+// xxxx => Selection::Invalid
 fn determine_selection(selection_text: &str) -> Result<Selection> {
     enum State {
         OnFirstNum,
         FoundFirstPeriod,
         FoundSecondPeriod,
         Invalid,
+        EmptyStr,
     }
+
+    let mut state = match selection_text.chars().nth(0) {
+        Some(ch) => {
+            if ch == '.' {
+                State::FoundFirstPeriod
+            } else if ch.is_ascii_digit() {
+                State::OnFirstNum
+            } else {
+                State::Invalid
+            }
+        }
+        None => State::EmptyStr,
+    };
 
     let mut first_num: usize = 0;
     let mut second_num: usize = 0;
-    let mut state = State::OnFirstNum;
 
-    // TODO:  Change to selector.graphemes?  
+    // TODO:  Change to selector.graphemes?
     for ch in selection_text.chars() {
         match state {
             State::OnFirstNum => {
@@ -90,13 +106,14 @@ fn determine_selection(selection_text: &str) -> Result<Selection> {
                     state = State::Invalid;
                 }
             }
-            State::Invalid => break,
+            State::Invalid | State::EmptyStr => break,
         }
     }
 
     match state {
         State::OnFirstNum => Ok(Selection::Index(first_num)),
         State::FoundSecondPeriod => Ok(Selection::Slice(first_num, second_num)),
+        State::EmptyStr => Ok(Selection::None),
         State::Invalid | State::FoundFirstPeriod => {
             Err(anyhow!("Invalid selection [{}]", selection_text))
         }
@@ -157,26 +174,17 @@ mod test {
 
     #[test]
     fn determine_selection_1() {
-        assert_eq!(
-            Selection::Index(0),
-            determine_selection("0").unwrap()
-        );
+        assert_eq!(Selection::Index(0), determine_selection("0").unwrap());
     }
 
     #[test]
     fn determine_selection_2() {
-        assert_eq!(
-            Selection::Index(10),
-            determine_selection("10").unwrap()
-        );
+        assert_eq!(Selection::Index(10), determine_selection("10").unwrap());
     }
 
     #[test]
     fn determine_selection_3() {
-        assert_eq!(
-            Selection::Slice(0, 5),
-            determine_selection("0..5").unwrap()
-        );
+        assert_eq!(Selection::Slice(0, 5), determine_selection("0..5").unwrap());
     }
 
     #[test]
@@ -205,10 +213,7 @@ mod test {
 
     #[test]
     fn determine_selection_7() {
-        assert_eq!(
-            Selection::Slice(3, 0),
-            determine_selection("3..").unwrap()
-        );
+        assert_eq!(Selection::Slice(3, 0), determine_selection("3..").unwrap());
     }
 
     #[test]
