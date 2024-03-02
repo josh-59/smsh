@@ -13,15 +13,21 @@ mod pipeline;
 use pipeline::Pipeline;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub enum LineType {
-    Normal,
+pub enum Construct {
     If,
     Elif,
-    Else,
+    Else, 
     FunctionDefinition,
     For,
     While,
     Let,
+}
+
+// Reflects the kind of command held by Line
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum LineType {
+    Normal,
+    ShellConstruct(Construct),
 }
 
 // This struct identifies the source from which
@@ -88,11 +94,15 @@ impl Line {
                     let mut pipeline = Pipeline::new(self, smsh)?;
                     pipeline.execute(smsh)
                 }
-                LineType::If | LineType::Elif | LineType::Else => r#if(smsh, self),
-                LineType::FunctionDefinition => r#fn(smsh, self),
-                LineType::For => r#for(smsh, self),
-                LineType::Let => r#let(smsh, self),
-                LineType::While => r#while(smsh, self),
+                LineType::ShellConstruct(c) => {
+                    match c {
+                        Construct::If | Construct::Elif | Construct::Else => r#if(smsh, self),
+                        Construct::FunctionDefinition => r#fn(smsh, self),
+                        Construct::For => r#for(smsh, self),
+                        Construct::Let => r#let(smsh, self),
+                        Construct::While => r#while(smsh, self),
+                    }
+                }
             }
         } else {
             Ok(())
@@ -133,11 +143,11 @@ impl Line {
     }
 
     pub fn is_elif(&self) -> bool {
-        self.line_type == Some(LineType::Elif)
+        self.line_type == Some(LineType::ShellConstruct(Construct::Elif))
     }
 
     pub fn is_else(&self) -> bool {
-        self.line_type == Some(LineType::Else)
+        self.line_type == Some(LineType::ShellConstruct(Construct::Else))
     }
 
     pub fn raw_text(&self) -> &str {
@@ -219,13 +229,13 @@ impl fmt::Display for Line {
 // complete; should probably be elsewhere...
 fn determine_line_type(line: &str) -> LineType {
     match line {
-        "if" => LineType::If,
-        "elif" => LineType::Elif,
-        "else" => LineType::Else,
-        "fn" => LineType::FunctionDefinition,
-        "for" => LineType::For,
-        "while" => LineType::While,
-        "let" => LineType::Let,
+        "if" => LineType::ShellConstruct(Construct::If),
+        "elif" => LineType::ShellConstruct(Construct::Elif),
+        "else" => LineType::ShellConstruct(Construct::Else),
+        "fn" => LineType::ShellConstruct(Construct::FunctionDefinition),
+        "for" => LineType::ShellConstruct(Construct::For),
+        "while" => LineType::ShellConstruct(Construct::While),
+        "let" => LineType::ShellConstruct(Construct::Let),
         _ => LineType::Normal,
     }
 }
