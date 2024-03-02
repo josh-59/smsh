@@ -50,7 +50,7 @@ fn get_selector(text: &str) -> Option<(String, String)> {
 // ..b
 // a
 // where a, b are integers
-fn determine_selection(selector: &str) -> Result<Selection> {
+fn determine_selection(selection_text: &str) -> Result<Selection> {
     enum State {
         OnFirstNum,
         FoundFirstPeriod,
@@ -63,7 +63,7 @@ fn determine_selection(selector: &str) -> Result<Selection> {
     let mut state = State::OnFirstNum;
 
     // TODO:  Change to selector.graphemes?  
-    for ch in selector.chars() {
+    for ch in selection_text.chars() {
         match state {
             State::OnFirstNum => {
                 if ch.is_ascii_digit() {
@@ -98,7 +98,7 @@ fn determine_selection(selector: &str) -> Result<Selection> {
         State::OnFirstNum => Ok(Selection::Index(first_num)),
         State::FoundSecondPeriod => Ok(Selection::Slice(first_num, second_num)),
         State::Invalid | State::FoundFirstPeriod => {
-            Err(anyhow!("Invalid selection [{}]", selector))
+            Err(anyhow!("Invalid selection [{}]", selection_text))
         }
     }
 }
