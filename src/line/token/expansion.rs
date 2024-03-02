@@ -8,7 +8,7 @@ use super::{Expansion, Token};
 use std::env;
 use std::fs::File;
 use std::io::Read;
-use std::os::unix::io::{FromRawFd};
+use std::os::unix::io::FromRawFd;
 
 use nix::sys::wait::wait;
 use nix::unistd::{close, dup2, fork, pipe, ForkResult};
