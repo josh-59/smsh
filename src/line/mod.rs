@@ -7,8 +7,8 @@ use crate::constructs::{r#fn, r#for, r#if, r#let, r#while};
 use crate::shell::Shell;
 use crate::sources::SourceKind;
 
-mod word;
-use word::Word;
+mod token;
+use token::Token;
 mod pipeline;
 use pipeline::Pipeline;
 
@@ -41,8 +41,8 @@ pub struct LineID {
 // terminating a line with a pipe operator.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Line {
-    raw_text: String,
-    words: Vec<Word>,
+    raw_text: String, // Is a logical line
+    tokens: Vec<Token>,
     line_type: Option<LineType>,
     line_id: LineID,
     indentation: usize,
@@ -55,28 +55,24 @@ impl Line {
             line_num,
         };
 
+        // TODO:  This could be determined lazily, if not every Line needs to know its indentation
         let indentation = determine_indentation(&raw_text);
 
         Ok(Line {
             raw_text,
             line_type: None,
-            words: Vec::new(),
+            tokens : Vec::new(),
             line_id,
             indentation,
         })
-    }
-
-    // TODO: Should a logical line admit newlines in its middle?
-    pub fn add_text(&mut self, new_text: String) -> () {
-        self.raw_text.push_str(new_text.as_str());
     }
 
     // Shell constructs use this
     pub fn argv(&self) -> Vec<&str> {
         let mut strs = Vec::<&str>::new();
 
-        for word in &self.words {
-            for s in word.selected_text() {
+        for token in &self.tokens {
+            for s in token.selected_text() {
                 if !s.is_empty() {
                     strs.push(s);
                 }
@@ -91,8 +87,8 @@ impl Line {
     }
 
     pub fn expand(&mut self, smsh: &mut Shell) -> Result<()> {
-        for word in &mut self.words {
-            word.expand(smsh)?;
+        for token in &mut self.tokens {
+            token.expand(smsh)?;
         }
 
         Ok(())
@@ -101,11 +97,11 @@ impl Line {
     pub fn get_conditional(&self) -> Result<String> {
         let mut conditional = String::new();
 
-        if self.words.len() < 2 {
+        if self.tokens.len() < 2 {
             return Err(anyhow!("No conditional present"));
         }
 
-        for s in &self.words[1..] {
+        for s in &self.tokens[1..] {
             conditional.push_str(s.text());
             conditional.push(' ');
         }
@@ -135,19 +131,20 @@ impl Line {
         &self.raw_text
     }
 
+    // Todo:  Maybe this all could be done on a call to Line::new()?
     pub fn separate(&mut self, smsh: &Shell) -> Result<()> {
-        // Get parts of line
-        let mut words = Vec::<Word>::new();
+        // Break logical line into parts according to quoting rules
+        let mut tokens = Vec::<Token>::new();
         for part in get_parts(&self.raw_text)? {
-            words.push(Word::new(part)?);
+            tokens.push(Token::new(part)?);
         }
 
-        self.words = words;
+        self.tokens = tokens;
 
         // Line type should be stated after it's been inspected for completeness
         // and correctness.
-        let line_type = if self.words.len() > 0 {
-            determine_line_type(self.words[0].text())
+        let line_type = if self.tokens.len() > 0 {
+            determine_line_type(self.tokens[0].text())
         } else {
             LineType::Empty
         };
@@ -156,8 +153,8 @@ impl Line {
     }
 
     pub fn select(&mut self) -> Result<()> {
-        for word in &mut self.words {
-            word.select()?;
+        for token in &mut self.tokens {
+            token.select()?;
         }
 
         Ok(())
@@ -167,8 +164,8 @@ impl Line {
         &self.line_id.source_kind
     }
 
-    pub fn words(&self) -> &Vec<Word> {
-        &self.words
+    pub fn tokens(&self) -> &Vec<Token> {
+        &self.tokens
     }
 }
 
@@ -218,8 +215,9 @@ fn determine_line_type(line: &str) -> LineType {
     }
 }
 
-// Breaks rawline into parts to be analyzed later on.
+// Breaks rawline into parts according to quoting rules.
 // Quotes and escapes are preserved; unquoted whitespace is removed
+// Selection remains appended to part.
 fn get_parts(rawline: &str) -> Result<Vec<String>> {
     #[derive(PartialEq, Eq, Clone, Copy)]
     enum State {
@@ -287,10 +285,10 @@ fn get_parts(rawline: &str) -> Result<Vec<String>> {
     }
 
     match state {
-        State::SingleQuoted => Err(anyhow!("Unmatched single quote.")),
-        State::DoubleQuoted => Err(anyhow!("Unmatched double quote.")),
+        State::SingleQuoted => Err(anyhow!("Unmatched single quote. (This error occured in get_parts(), and should not happen. It is a bug!  Please report.)")),
+        State::DoubleQuoted => Err(anyhow!("Unmatched double quote. (This error occured in get_parts(), and should not happen. It is a bug!  Please report.)")),
         State::Escaped => Err(anyhow!(
-            "Unresolved terminal escaped newline (This should not happen!)"
+            "Unresolved terminal escaped newline (This error occured in get_parts(), and should not happen. It is a bug!  Please report.)"
         )),
         State::Unquoted => Ok(parts),
     }

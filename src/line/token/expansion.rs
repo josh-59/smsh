@@ -3,7 +3,7 @@ use crate::shell::Shell;
 use crate::sources::{subshell::SubshellSource, SourceKind};
 use anyhow::Result;
 
-use super::{Expansion, Word};
+use super::{Expansion, Token};
 
 use std::env;
 use std::fs::File;
@@ -13,7 +13,7 @@ use std::os::unix::io::{FromRawFd};
 use nix::sys::wait::wait;
 use nix::unistd::{close, dup2, fork, pipe, ForkResult};
 
-pub fn expand(word: &mut Word, smsh: &mut Shell) -> Result<()> {
+pub fn expand(word: &mut Token, smsh: &mut Shell) -> Result<()> {
     match word.expansion {
         Expansion::Variable => {
             if let Some(val) = smsh.get_user_variable(&word.text) {

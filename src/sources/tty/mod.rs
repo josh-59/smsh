@@ -122,7 +122,6 @@ impl Prompt for SimplePrompt {
             prompt_string.push_str("$ ");
         };
 
-        prompt_string = prompt_string.bold().to_string();
         Cow::Owned(prompt_string)
     }
 

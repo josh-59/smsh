@@ -24,7 +24,7 @@ pub enum Expansion {
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Word {
+pub struct Token {
     text: String,
     quote: Quote,
     expansion: Expansion,
@@ -34,8 +34,8 @@ pub struct Word {
 }
 
 // A word is a single logical unit of input text.
-impl Word {
-    pub fn new(text: String) -> Result<Word> {
+impl Token {
+    pub fn new(text: String) -> Result<Token> {
         let (text, quote) = get_quote(&text)?;
 
         let (text, selection) = match quote {
@@ -48,7 +48,7 @@ impl Word {
             Quote::Unquoted | Quote::DoubleQuoted => get_expansion(&text),
         };
 
-        let word = Word {
+        let word = Token {
             text,
             quote,
             expansion,
@@ -147,7 +147,7 @@ mod test {
     fn create_word_1() {
         let cmd = "cat".to_string();
 
-        let word = Word {
+        let word = Token {
             text: "cat".to_string(),
             quote: Quote::Unquoted,
             expansion: Expansion::None,
@@ -156,14 +156,14 @@ mod test {
             selected_text: Vec::<String>::new(),
         };
 
-        assert_eq!(word, Word::new(cmd).unwrap());
+        assert_eq!(word, Token ::new(cmd).unwrap());
     }
 
     #[test]
     fn create_word_2() {
         let cmd = "{cmd}".to_string();
 
-        let word = Word {
+        let word = Token {
             text: "cmd".to_string(),
             quote: Quote::Unquoted,
             expansion: Expansion::Variable,
@@ -172,14 +172,14 @@ mod test {
             selected_text: Vec::<String>::new(),
         };
 
-        assert_eq!(word, Word::new(cmd).unwrap());
+        assert_eq!(word, Token::new(cmd).unwrap());
     }
 
     #[test]
     fn create_word_3() {
         let cmd = "!{cmd}".to_string();
 
-        let word = Word {
+        let word = Token {
             text: "cmd".to_string(),
             quote: Quote::Unquoted,
             expansion: Expansion::Subshell,
@@ -188,14 +188,14 @@ mod test {
             selected_text: Vec::<String>::new(),
         };
 
-        assert_eq!(word, Word::new(cmd).unwrap());
+        assert_eq!(word, Token::new(cmd).unwrap());
     }
 
     #[test]
     fn create_word_4() {
         let cmd = "!{{cmd}}".to_string();
 
-        let word = Word {
+        let word = Token {
             text: "{cmd}".to_string(),
             quote: Quote::Unquoted,
             expansion: Expansion::Subshell,
@@ -204,14 +204,14 @@ mod test {
             selected_text: Vec::<String>::new(),
         };
 
-        assert_eq!(word, Word::new(cmd).unwrap());
+        assert_eq!(word, Token::new(cmd).unwrap());
     }
 
     #[test]
     fn create_word_5() {
         let cmd = "!{{cmd}}[1]".to_string();
 
-        let word = Word {
+        let word = Token {
             text: "{cmd}".to_string(),
             quote: Quote::Unquoted,
             expansion: Expansion::Subshell,
@@ -220,14 +220,14 @@ mod test {
             selected_text: Vec::<String>::new(),
         };
 
-        assert_eq!(word, Word::new(cmd).unwrap());
+        assert_eq!(word, Token::new(cmd).unwrap());
     }
 
     #[test]
     fn create_word_6() {
         let cmd = "!{{cmd}}[1..]".to_string();
 
-        let word = Word {
+        let word = Token {
             text: "{cmd}".to_string(),
             quote: Quote::Unquoted,
             expansion: Expansion::Subshell,
@@ -236,14 +236,14 @@ mod test {
             selected_text: Vec::<String>::new(),
         };
 
-        assert_eq!(word, Word::new(cmd).unwrap());
+        assert_eq!(word, Token::new(cmd).unwrap());
     }
 
     #[test]
     fn create_word_7() {
         let cmd = "'!{{cmd}}[1..]'".to_string();
 
-        let word = Word {
+        let word = Token {
             text: "!{{cmd}}[1..]".to_string(),
             quote: Quote::SingleQuoted,
             expansion: Expansion::None,
@@ -252,7 +252,7 @@ mod test {
             selected_text: Vec::<String>::new(),
         };
 
-        assert_eq!(word, Word::new(cmd).unwrap());
+        assert_eq!(word, Token::new(cmd).unwrap());
     }
 
     #[test]
@@ -261,7 +261,7 @@ mod test {
         let mut smsh = Shell::new();
         smsh.insert_user_variable("cmd".to_string(), "cat".to_string());
 
-        let mut word = Word::new("{cmd}".to_string()).unwrap();
+        let mut word = Token::new("{cmd}".to_string()).unwrap();
 
         word.expand(&mut smsh).unwrap();
 

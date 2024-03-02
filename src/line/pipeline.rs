@@ -25,7 +25,7 @@ impl Pipeline {
         let mut args = Vec::<String>::new();
         let mut elements = Vec::<PipeElement>::new();
 
-        for word in line.words() {
+        for word in line.tokens() {
             if word.is_pipe_operator() {
                 let elem = PipeElement::new(args, smsh)?;
                 args = Vec::<String>::new();
