@@ -22,7 +22,6 @@ pub enum LineType {
     For,
     While,
     Let,
-    Empty,
 }
 
 // This struct identifies the source from which
@@ -61,7 +60,7 @@ impl Line {
         Ok(Line {
             raw_text,
             line_type: None,
-            tokens : Vec::new(),
+            tokens: Vec::new(),
             line_id,
             indentation,
         })
@@ -83,7 +82,21 @@ impl Line {
     }
 
     pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
-        Ok(())
+        if let Some(line_type) = &self.line_type {
+            match line_type {
+                LineType::Normal => {
+                    let mut pipeline = Pipeline::new(self, smsh)?;
+                    pipeline.execute(smsh)
+                }
+                LineType::If | LineType::Elif | LineType::Else => r#if(smsh, self),
+                LineType::FunctionDefinition => r#fn(smsh, self),
+                LineType::For => r#for(smsh, self),
+                LineType::Let => r#let(smsh, self),
+                LineType::While => r#while(smsh, self),
+            }
+        } else {
+            Ok(())
+        }
     }
 
     pub fn expand(&mut self, smsh: &mut Shell) -> Result<()> {
@@ -132,7 +145,7 @@ impl Line {
     }
 
     // Todo:  Maybe this all could be done on a call to Line::new()?
-    pub fn separate(&mut self, smsh: &Shell) -> Result<()> {
+    pub fn separate(&mut self) -> Result<()> {
         // Break logical line into parts according to quoting rules
         let mut tokens = Vec::<Token>::new();
         for part in get_parts(&self.raw_text)? {
@@ -144,10 +157,12 @@ impl Line {
         // Line type should be stated after it's been inspected for completeness
         // and correctness.
         let line_type = if self.tokens.len() > 0 {
-            determine_line_type(self.tokens[0].text())
+            Some(determine_line_type(self.tokens[0].text()))
         } else {
-            LineType::Empty
+            None
         };
+
+        self.line_type = line_type;
 
         Ok(())
     }

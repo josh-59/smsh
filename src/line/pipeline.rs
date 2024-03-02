@@ -1,39 +1,39 @@
 use anyhow::{anyhow, Result};
-use nix::unistd::{close, dup, dup2, fork, ForkResult, pipe};
 use nix::sys::wait::{waitpid, WaitStatus};
+use nix::unistd::{close, dup, dup2, fork, pipe, ForkResult};
 
 use std::os::unix::io::RawFd;
 
 use super::Line;
-use crate::Shell;
-use crate::sources::user_function::UserFunction;
 use crate::shell::modules::Builtin;
+use crate::sources::user_function::UserFunction;
+use crate::Shell;
 
 enum CommandKind {
     UserFunction(UserFunction),
     Builtin(Builtin),
-    ExternalCommand(String)
+    ExternalCommand(String),
 }
 
 pub struct Pipeline {
-    elements: Vec<PipeElement>
+    elements: Vec<PipeElement>,
 }
 
 impl Pipeline {
     pub fn new(line: &mut Line, smsh: &mut Shell) -> Result<Self> {
-
         let mut args = Vec::<String>::new();
         let mut elements = Vec::<PipeElement>::new();
 
-        for word in line.tokens() {
-            if word.is_pipe_operator() {
+        for token in line.tokens() {
+            if token.is_pipe_operator() {
                 let elem = PipeElement::new(args, smsh)?;
                 args = Vec::<String>::new();
                 elements.push(elem);
             } else {
-                for arg in word.selected_text() {
+                for arg in token.selected_text() {
                     if !arg.is_empty() {
                         args.push(arg.to_string());
+                    } else {
                     }
                 }
             }
@@ -44,7 +44,7 @@ impl Pipeline {
             elements.push(elem);
         }
 
-        Ok( Pipeline {elements})
+        Ok(Pipeline { elements })
     }
 
     pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
@@ -65,7 +65,7 @@ impl Pipeline {
             let (rd, wr) = pipe()?;
 
             match unsafe { fork()? } {
-                ForkResult::Parent{child: _, ..} => {
+                ForkResult::Parent { child: _, .. } => {
                     close(wr)?;
                     close(0 as RawFd)?;
                     dup2(rd, 0)?;
@@ -87,17 +87,12 @@ impl Pipeline {
 
         if last_elem.is_external_command() {
             match unsafe { fork()? } {
-                ForkResult::Parent{child: pid, ..} => {
-                    
-                    match waitpid(pid, None)? {
-                        WaitStatus::Exited(_pid, exit_status) => {
-                            smsh.set_rv(exit_status);
-                        }
-                        _ => {
-
-                        }
+                ForkResult::Parent { child: pid, .. } => match waitpid(pid, None)? {
+                    WaitStatus::Exited(_pid, exit_status) => {
+                        smsh.set_rv(exit_status);
                     }
-                }
+                    _ => {}
+                },
                 ForkResult::Child => {
                     smsh.clear_sources();
                     last_elem.execute(smsh)?;
@@ -135,7 +130,7 @@ impl PipeElement {
             CommandKind::ExternalCommand(argv[0].to_string())
         };
 
-        Ok(PipeElement{argv, cmd_kind })
+        Ok(PipeElement { argv, cmd_kind })
     }
 
     pub fn argv(&self) -> Vec<&str> {
@@ -152,14 +147,9 @@ impl PipeElement {
 
     pub fn is_external_command(&self) -> bool {
         match &self.cmd_kind {
-            CommandKind::ExternalCommand(_) => {
-                true
-            }
-            _ => {
-                false
-            }
+            CommandKind::ExternalCommand(_) => true,
+            _ => false,
         }
-
     }
 
     // Executes self in current shell context (that is, 'dumbly')
@@ -169,9 +159,7 @@ impl PipeElement {
                 smsh.push_source(f.clone().build_source());
                 Ok(())
             }
-            CommandKind::Builtin(b) => {
-                b(smsh, self.argv())
-            }
+            CommandKind::Builtin(b) => b(smsh, self.argv()),
             CommandKind::ExternalCommand(cmd) => {
                 let _ = smsh.execute_external_command(self.argv());
                 Err(anyhow!("{}: Command not found", cmd))

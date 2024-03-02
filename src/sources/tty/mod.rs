@@ -15,6 +15,7 @@ use crate::sources::is_complete;
 mod line_validator;
 use line_validator::SmshLineValidator;
 mod completer;
+use completer::build_command_completer;
 
 pub struct Tty {
     line_editor: Reedline,
@@ -25,7 +26,17 @@ pub struct Tty {
 
 impl Tty {
     pub fn new() -> Box<dyn Source> {
-        let line_editor = Reedline::create().with_validator(Box::new(SmshLineValidator));
+        let line_editor = match build_command_completer() {
+            Ok(completer) => {
+                Reedline::create()
+                .with_validator(Box::new(SmshLineValidator))
+                .with_completer(Box::new(completer))
+            }
+            Err(_) => {
+                Reedline::create()
+                .with_validator(Box::new(SmshLineValidator))
+            }
+        };
 
         Box::new(Tty {
             line_editor,
@@ -112,7 +123,7 @@ impl Prompt for SimplePrompt {
                     prompt_string.push_str(s);
                 }
             }
-            Err(e) => {}
+            Err(_) => {}
         }
 
         if unistd::getuid().is_root() {

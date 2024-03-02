@@ -1,3 +1,8 @@
+// A Token is the smallest logical unit of input to `smsh`.  It is created by
+// breaking a logical line into sequences of UTF-8 graphemes according to the
+// quoting rules.  A token may be a command, or a string of quoted text, or an
+// expansion.  Quotes are preserved, and selection is also preserved.
+
 use crate::shell::Shell;
 use anyhow::{anyhow, Result};
 
@@ -33,7 +38,6 @@ pub struct Token {
     selected_text: Vec<String>,
 }
 
-// A word is a single logical unit of input text.
 impl Token {
     pub fn new(text: String) -> Result<Token> {
         let (text, quote) = get_quote(&text)?;
@@ -48,16 +52,18 @@ impl Token {
             Quote::Unquoted | Quote::DoubleQuoted => get_expansion(&text),
         };
 
-        let word = Token {
+        let separated_text = vec![text.clone()];
+
+        let token = Token {
             text,
             quote,
             expansion,
             selection,
-            separated_text: Vec::<String>::new(),
+            separated_text,
             selected_text: Vec::<String>::new(),
         };
 
-        Ok(word)
+        Ok(token)
     }
 
     // Replaces self.text with expanded value
@@ -156,7 +162,7 @@ mod test {
             selected_text: Vec::<String>::new(),
         };
 
-        assert_eq!(word, Token ::new(cmd).unwrap());
+        assert_eq!(word, Token::new(cmd).unwrap());
     }
 
     #[test]
