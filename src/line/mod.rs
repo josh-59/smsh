@@ -8,7 +8,7 @@ use crate::shell::Shell;
 use crate::sources::SourceKind;
 
 mod token;
-use token::Token;
+use token::{Token, get_tokens};
 mod pipeline;
 use pipeline::Pipeline;
 
@@ -227,85 +227,6 @@ fn determine_line_type(line: &str) -> LineType {
         "while" => LineType::While,
         "let" => LineType::Let,
         _ => LineType::Normal,
-    }
-}
-
-// Breaks rawline into parts according to quoting rules, yielding tokens.
-// Quotes and escapes are preserved; unquoted whitespace is removed
-// Selection remains appended to part.
-fn get_tokens(rawline: &str) -> Result<Vec<String>> {
-    #[derive(PartialEq, Eq, Clone, Copy)]
-    enum State {
-        SingleQuoted,
-        DoubleQuoted,
-        Escaped,
-        Unquoted,
-    }
-
-    let mut parts = Vec::<String>::new();
-    let mut part = String::new();
-
-    let mut state = State::Unquoted;
-    let mut escaped_state: Option<State> = None;
-
-    for grapheme in rawline.graphemes(true) {
-        match state {
-            State::Unquoted => match grapheme {
-                " " | "\t" => {
-                    if !part.is_empty() {
-                        parts.push(part);
-                        part = String::new();
-                    }
-                }
-                "\'" => {
-                    part.push_str(grapheme);
-                    state = State::SingleQuoted;
-                }
-                "\"" => {
-                    part.push_str(grapheme);
-                    state = State::DoubleQuoted;
-                }
-                "\\" => {
-                    part.push_str(grapheme);
-                    escaped_state = Some(State::Unquoted);
-                    state = State::Escaped;
-                }
-                _ => {
-                    part.push_str(grapheme);
-                }
-            },
-            State::SingleQuoted => {
-                part.push_str(grapheme);
-                if grapheme == "\'" {
-                    state = State::Unquoted;
-                }
-            }
-            State::DoubleQuoted => {
-                part.push_str(grapheme);
-                if grapheme == "\"" {
-                    state = State::Unquoted;
-                } else if grapheme == "\\" {
-                    escaped_state = Some(State::DoubleQuoted);
-                    state = State::Escaped;
-                }
-            }
-            State::Escaped => {
-                part.push_str(grapheme);
-                state = escaped_state.unwrap();
-            }
-        }
-    }
-    if !part.is_empty() {
-        parts.push(part);
-    }
-
-    match state {
-        State::SingleQuoted => Err(anyhow!("Unmatched single quote. (This error occured in get_parts(), and should not happen. It is a bug!  Please report.)")),
-        State::DoubleQuoted => Err(anyhow!("Unmatched double quote. (This error occured in get_parts(), and should not happen. It is a bug!  Please report.)")),
-        State::Escaped => Err(anyhow!(
-            "Unresolved terminal escaped newline (This error occured in get_parts(), and should not happen. It is a bug!  Please report.)"
-        )),
-        State::Unquoted => Ok(parts),
     }
 }
 
