@@ -10,7 +10,9 @@ pub enum Selection {
     All,
     None,
     Index(usize),
-    Slice(usize, usize), // Omitted indices are represented by value zero.
+    Slice(usize, usize),
+    GreaterThan(usize),
+    LessThan(usize),
 }
 
 // Returns text with selector removed.
@@ -25,7 +27,7 @@ pub fn get_selection(text: &str) -> Result<(String, Selection)> {
 
 // Returns (text, selector)
 // Selector does not include braces
-// Returns 'None' is selector is empty.
+// Returns 'None' if selector is empty.
 fn get_selector(text: &str) -> Option<(String, String)> {
     if text.ends_with(']') {
         if let Some(brace_index) = text.rfind('[') {
@@ -53,7 +55,10 @@ fn get_selector(text: &str) -> Option<(String, String)> {
 // a => Selection::Index(a)
 //   => Selection::None
 // xxxx => Selection::Invalid
+// TODO: Perhaps decompose into get_first_num_of_selector(&str),
+// get_dot_dot_of_selector(&str, index), get_second_num_of_selector(&str, index),
 fn determine_selection(selection_text: &str) -> Result<Selection> {
+    #[derive(Clone, Copy, PartialEq, Eq, Debug)]
     enum State {
         EnteringLoop,
         OnFirstNum,
@@ -63,17 +68,16 @@ fn determine_selection(selection_text: &str) -> Result<Selection> {
     }
 
     let mut state = State::EnteringLoop;
-    let mut first_num: usize = 0;
-    let mut second_num: usize = 0;
+    let mut first_num: Option<usize> = None;
+    let mut second_num: Option<usize> = None;
 
-    // TODO:  Change to selector.graphemes?
     for ch in selection_text.chars() {
         match state {
             State::EnteringLoop => {
                 if ch == '.' {
                     state = State::FoundFirstPeriod;
                 } else if ch.is_ascii_digit() {
-                    first_num = ch.to_digit(10).unwrap() as usize;
+                    first_num = Some(ch.to_digit(10).unwrap() as usize);
                     state = State::OnFirstNum;
                 } else {
                     state = State::Invalid;
@@ -82,8 +86,10 @@ fn determine_selection(selection_text: &str) -> Result<Selection> {
             }
             State::OnFirstNum => {
                 if ch.is_ascii_digit() {
-                    first_num *= 10;
-                    first_num += ch.to_digit(10).unwrap() as usize;
+                    let mut temp = first_num.unwrap();
+                    temp *= 10;
+                    temp += ch.to_digit(10).unwrap() as usize;
+                    first_num = Some(temp);
                 } else if ch == '.' {
                     state = State::FoundFirstPeriod;
                 } else {
@@ -99,8 +105,13 @@ fn determine_selection(selection_text: &str) -> Result<Selection> {
             }
             State::FoundSecondPeriod => {
                 if ch.is_ascii_digit() {
-                    second_num *= 10;
-                    second_num += ch.to_digit(10).unwrap() as usize;
+                    if let Some(mut temp) = second_num {
+                        temp *= 10;
+                        temp += ch.to_digit(10).unwrap() as usize;
+                        second_num = Some(temp);
+                    } else {
+                        second_num = Some(ch.to_digit(10).unwrap() as usize);
+                    }
                 } else {
                     state = State::Invalid;
                 }
@@ -109,13 +120,20 @@ fn determine_selection(selection_text: &str) -> Result<Selection> {
         }
     }
 
-    match state {
-        State::EnteringLoop => Ok(Selection::None),
-        State::OnFirstNum => Ok(Selection::Index(first_num)),
-        State::FoundSecondPeriod => Ok(Selection::Slice(first_num, second_num)),
-        State::Invalid | State::FoundFirstPeriod => {
-            Err(anyhow!("Invalid selection [{}]", selection_text))
+    if state == State::Invalid {
+        Err(anyhow!("Invalid selection {}", selection_text))
+    } else if let Some(first_num) = first_num {
+        if let Some(second_num) = second_num {
+            Ok(Selection::Slice(first_num, second_num))
+        } else if state == State::FoundSecondPeriod {
+            Ok(Selection::GreaterThan(first_num))
+        } else {
+            Ok(Selection::Index(first_num))
         }
+    } else if let Some(second_num) = second_num {
+        Ok(Selection::LessThan(second_num))
+    } else {
+        Ok(Selection::None)
     }
 }
 
@@ -205,14 +223,17 @@ mod test {
     #[test]
     fn determine_selection_6() {
         assert_eq!(
-            Selection::Slice(0, 10),
+            Selection::LessThan(10),
             determine_selection("..10").unwrap()
         );
     }
 
     #[test]
     fn determine_selection_7() {
-        assert_eq!(Selection::Slice(3, 0), determine_selection("3..").unwrap());
+        assert_eq!(
+            Selection::GreaterThan(3),
+            determine_selection("3..").unwrap()
+        );
     }
 
     #[test]

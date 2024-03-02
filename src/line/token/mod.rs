@@ -106,6 +106,20 @@ impl Token {
                     }
                 }
             }
+            Selection::GreaterThan(n) => {
+                for word in self.separated_text.iter().skip(*n) {
+                    self.selected_text.push(word.to_string());
+                }
+            }
+            Selection::LessThan(n) => {
+                for (i, word) in self.separated_text.iter().enumerate() {
+                    if i < *n {
+                        self.selected_text.push(word.to_string());
+                    } else {
+                        break;
+                    }
+                }
+            }
             Selection::All => {
                 self.selected_text = self.separated_text.clone();
             }
