@@ -8,7 +8,7 @@ use crate::shell::Shell;
 use crate::sources::SourceKind;
 
 mod token;
-use token::{Token, get_tokens};
+use token::{get_tokens, Token};
 mod pipeline;
 use pipeline::Pipeline;
 
@@ -16,7 +16,7 @@ use pipeline::Pipeline;
 pub enum Construct {
     If,
     Elif,
-    Else, 
+    Else,
     FunctionDefinition,
     For,
     While,
@@ -94,15 +94,13 @@ impl Line {
                     let mut pipeline = Pipeline::new(self, smsh)?;
                     pipeline.execute(smsh)
                 }
-                LineType::ShellConstruct(c) => {
-                    match c {
-                        Construct::If | Construct::Elif | Construct::Else => r#if(smsh, self),
-                        Construct::FunctionDefinition => r#fn(smsh, self),
-                        Construct::For => r#for(smsh, self),
-                        Construct::Let => r#let(smsh, self),
-                        Construct::While => r#while(smsh, self),
-                    }
-                }
+                LineType::ShellConstruct(c) => match c {
+                    Construct::If | Construct::Elif | Construct::Else => r#if(smsh, self),
+                    Construct::FunctionDefinition => r#fn(smsh, self),
+                    Construct::For => r#for(smsh, self),
+                    Construct::Let => r#let(smsh, self),
+                    Construct::While => r#while(smsh, self),
+                },
             }
         } else {
             Ok(())
@@ -227,7 +225,7 @@ impl fmt::Display for Line {
 // TODO: Remove! This functionality is not even close to being
 // complete; should probably be elsewhere...
 fn determine_line_type(first_token: &str) -> LineType {
-    match first_token{
+    match first_token {
         "if" => LineType::ShellConstruct(Construct::If),
         "elif" => LineType::ShellConstruct(Construct::Elif),
         "else" => LineType::ShellConstruct(Construct::Else),
