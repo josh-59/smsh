@@ -15,7 +15,7 @@ pub enum Selection {
 // Returns text with selector removed.
 pub fn get_selection(text: &str) -> Result<(String, Selection)> {
     if let Some((text, selection_text)) = get_selector(text) {
-        let selection = determine_selection(selection_text)?;
+        let selection = determine_selection(selection_text.as_str())?;
         Ok((text, selection))
     } else {
         Ok((text.to_string(), Selection::All))
@@ -44,7 +44,13 @@ fn get_selector(text: &str) -> Option<(String, String)> {
     }
 }
 
-fn determine_selection(selector: String) -> Result<Selection> {
+// selector is an &str of one of the following forms:
+// a..b
+// a..
+// ..b
+// a
+// where a, b are integers
+fn determine_selection(selector: &str) -> Result<Selection> {
     enum State {
         OnFirstNum,
         FoundFirstPeriod,
@@ -153,7 +159,7 @@ mod test {
     fn determine_selection_1() {
         assert_eq!(
             Selection::Index(0),
-            determine_selection("0".to_string()).unwrap()
+            determine_selection("0").unwrap()
         );
     }
 
@@ -161,7 +167,7 @@ mod test {
     fn determine_selection_2() {
         assert_eq!(
             Selection::Index(10),
-            determine_selection("10".to_string()).unwrap()
+            determine_selection("10").unwrap()
         );
     }
 
@@ -169,7 +175,7 @@ mod test {
     fn determine_selection_3() {
         assert_eq!(
             Selection::Slice(0, 5),
-            determine_selection("0..5".to_string()).unwrap()
+            determine_selection("0..5").unwrap()
         );
     }
 
@@ -177,7 +183,7 @@ mod test {
     fn determine_selection_4() {
         assert_eq!(
             Selection::Slice(0, 10),
-            determine_selection("0..10".to_string()).unwrap()
+            determine_selection("0..10").unwrap()
         );
     }
 
@@ -185,7 +191,7 @@ mod test {
     fn determine_selection_5() {
         assert_eq!(
             Selection::Slice(10, 10),
-            determine_selection("10..10".to_string()).unwrap()
+            determine_selection("10..10").unwrap()
         );
     }
 
@@ -193,7 +199,7 @@ mod test {
     fn determine_selection_6() {
         assert_eq!(
             Selection::Slice(0, 10),
-            determine_selection("..10".to_string()).unwrap()
+            determine_selection("..10").unwrap()
         );
     }
 
@@ -201,27 +207,27 @@ mod test {
     fn determine_selection_7() {
         assert_eq!(
             Selection::Slice(3, 0),
-            determine_selection("3..".to_string()).unwrap()
+            determine_selection("3..").unwrap()
         );
     }
 
     #[test]
     fn determine_selection_8() {
-        assert!(determine_selection("1...10".to_string()).is_err());
+        assert!(determine_selection("1...10").is_err());
     }
 
     #[test]
     fn determine_selection_9() {
-        assert!(determine_selection("...10".to_string()).is_err());
+        assert!(determine_selection("...10").is_err());
     }
 
     #[test]
     fn determine_selection_10() {
-        assert!(determine_selection("10...".to_string()).is_err());
+        assert!(determine_selection("10...").is_err());
     }
 
     #[test]
     fn determine_selection_11() {
-        assert!(determine_selection("a...b".to_string()).is_err());
+        assert!(determine_selection("a...b").is_err());
     }
 }
