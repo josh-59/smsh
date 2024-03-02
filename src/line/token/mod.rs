@@ -109,6 +109,7 @@ impl Token {
             Selection::All => {
                 self.selected_text = self.separated_text.clone();
             }
+            Selection::None => {}
         }
         Ok(())
     }
