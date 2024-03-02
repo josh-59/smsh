@@ -38,9 +38,7 @@ pub fn expand(word: &mut Token, smsh: &mut Shell) -> Result<()> {
 
             Ok(())
         }
-        Expansion::None => {
-            Ok(())
-        }
+        Expansion::None => Ok(()),
     }
 }
 

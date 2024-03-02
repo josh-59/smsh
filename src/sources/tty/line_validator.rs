@@ -1,11 +1,12 @@
-use reedline::{Validator, ValidationResult};
 use crate::sources::is_complete;
+use reedline::{ValidationResult, Validator};
 
 pub struct SmshLineValidator;
 
 impl Validator for SmshLineValidator {
     fn validate(&self, line: &str) -> ValidationResult {
-        if ! is_complete(line) {    // Every line/line+block must be complete
+        if !is_complete(line) {
+            // Every line/line+block must be complete
             ValidationResult::Incomplete
         } else if is_shell_construct(line) {
             if contains_finished_block(line) {
@@ -22,17 +23,17 @@ impl Validator for SmshLineValidator {
 // A block is complete if it ends with a line
 // of indentation 0
 fn contains_finished_block(line: &str) -> bool {
-    line.ends_with("\n\n") ||
-    line.ends_with("\n \n") ||
-    line.ends_with("\n  \n") ||
-    line.ends_with("\n   \n")
+    line.ends_with("\n\n")
+        || line.ends_with("\n \n")
+        || line.ends_with("\n  \n")
+        || line.ends_with("\n   \n")
 }
 
 // TODO: Handle leading whitespace
 fn is_shell_construct(line: &str) -> bool {
-    line.starts_with("if") ||
-    line.starts_with("for") ||
-    line.starts_with("while") ||
-    line.starts_with("case") ||
-    line.starts_with("fn")
+    line.starts_with("if")
+        || line.starts_with("for")
+        || line.starts_with("while")
+        || line.starts_with("case")
+        || line.starts_with("fn")
 }

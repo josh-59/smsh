@@ -18,7 +18,7 @@ impl Script {
     // TODO:  This function reads the entire script into memory before
     // dolling it out; should probably read a (logical) line at a time.
     // On the other hand, though, even a large script (10000 lines) is
-    // less than 10 MB, so...  
+    // less than 10 MB, so...
     pub fn build_source(path: PathBuf) -> Result<Box<dyn Source>> {
         let body = read_to_string(&path)?
             .lines()
@@ -29,7 +29,7 @@ impl Script {
             path,
             body,
             line_num: 0,
-            last_line: None
+            last_line: None,
         };
 
         Ok(Box::new(script))
@@ -41,7 +41,6 @@ impl Script {
 }
 
 impl Source for Script {
-
     fn get_line(&mut self) -> Result<Option<Line>> {
         if self.line_num == self.body.len() {
             Ok(None)

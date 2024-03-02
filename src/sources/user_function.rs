@@ -48,10 +48,14 @@ impl Source for UserFunction {
     }
 
     fn print_error(&mut self) -> Result<()> {
-        eprintln!("{}", 
-                    Line::new(self.fn_body[self.line_num - 1].clone(),
-                    self.line_num,
-                    SourceKind::UserFunction(self.fn_name.clone()))?);
+        eprintln!(
+            "{}",
+            Line::new(
+                self.fn_body[self.line_num - 1].clone(),
+                self.line_num,
+                SourceKind::UserFunction(self.fn_name.clone())
+            )?
+        );
         Ok(())
     }
 }

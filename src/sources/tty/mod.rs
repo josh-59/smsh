@@ -4,9 +4,9 @@ use std::collections::VecDeque;
 use std::env::current_dir;
 
 use anyhow::Result;
+use crossterm::style::Stylize;
 use nix::unistd;
 use reedline::{Prompt, PromptEditMode, PromptHistorySearch, Reedline, Signal};
-use crossterm::style::Stylize;
 
 use super::{Source, SourceKind};
 use crate::line::Line;
@@ -27,20 +27,15 @@ pub struct Tty {
 impl Tty {
     pub fn new() -> Box<dyn Source> {
         let line_editor = match build_command_completer() {
-            Ok(completer) => {
-                Reedline::create()
+            Ok(completer) => Reedline::create()
                 .with_validator(Box::new(SmshLineValidator))
-                .with_completer(Box::new(completer))
-            }
-            Err(_) => {
-                Reedline::create()
-                .with_validator(Box::new(SmshLineValidator))
-            }
+                .with_completer(Box::new(completer)),
+            Err(_) => Reedline::create().with_validator(Box::new(SmshLineValidator)),
         };
 
         Box::new(Tty {
             line_editor,
-            line_num: 1,  // TODO: line_num should probably reflect physical line, not logical...
+            line_num: 1, // TODO: line_num should probably reflect physical line, not logical...
             last_line: None,
             buffer: VecDeque::<Line>::new(),
         })
@@ -68,7 +63,8 @@ impl Source for Tty {
                 let mut line = String::new();
 
                 // So, first we collect the logical lines in a vector...
-                for physical_line in buffer.split("\n") {  // Implicitly removes newline characters
+                for physical_line in buffer.split("\n") {
+                    // Implicitly removes newline characters
                     line.push_str(physical_line); // Implicitly ignores physical lines of length 0
 
                     if line.len() > 0 && is_complete(line.as_str()) {

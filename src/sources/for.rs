@@ -14,7 +14,12 @@ pub struct For {
 }
 
 impl For {
-    pub fn new(iterator_key: String, iterator_values: Vec<String>, body: Vec<Line>, for_line_identifier: LineID) -> Self{
+    pub fn new(
+        iterator_key: String,
+        iterator_values: Vec<String>,
+        body: Vec<Line>,
+        for_line_identifier: LineID,
+    ) -> Self {
         Self {
             iterator_key,
             iterator_values,
@@ -32,26 +37,29 @@ impl For {
 
 impl Source for For {
     fn get_line(&mut self) -> Result<Option<Line>> {
-
         // At the top of each loop, execute let statement
-        if self.line_num == 0 { 
+        if self.line_num == 0 {
             if self.iter_idx == self.iterator_values.len() {
                 Ok(None)
             } else {
-                let rawline = format!("let {} = {}", 
-                                      self.iterator_key, 
-                                      self.iterator_values[self.iter_idx]);
+                let rawline = format!(
+                    "let {} = {}",
+                    self.iterator_key, self.iterator_values[self.iter_idx]
+                );
                 self.iter_idx += 1;
 
-                let line = Line::new(rawline, 
-                             self.for_line_identifier.line_num, 
-                             self.for_line_identifier.source_kind.clone())?;
-                
+                let line = Line::new(
+                    rawline,
+                    self.for_line_identifier.line_num,
+                    self.for_line_identifier.source_kind.clone(),
+                )?;
+
                 self.line_num += 1;
 
                 Ok(Some(line))
             }
-        } else { // self.line_num is now one greater than true index
+        } else {
+            // self.line_num is now one greater than true index
             if self.body.is_empty() {
                 Ok(None)
             } else {
@@ -64,7 +72,6 @@ impl Source for For {
 
                 Ok(Some(line))
             }
-
         }
     }
 

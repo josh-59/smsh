@@ -1,7 +1,7 @@
 use anyhow::Result;
 
-use crate::line::Line;
 use super::Source;
+use crate::line::Line;
 
 // Used to push lines back onto the execution stack
 pub struct SubshellSource {
@@ -11,7 +11,7 @@ pub struct SubshellSource {
 
 impl SubshellSource {
     pub fn build_source(lines: Vec<Line>) -> Box<dyn Source> {
-        Box::new(SubshellSource{ lines, line_num: 0 })
+        Box::new(SubshellSource { lines, line_num: 0 })
     }
 }
 

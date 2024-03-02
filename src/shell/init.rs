@@ -1,10 +1,7 @@
 use xdg::BaseDirectories;
 
 use super::Shell;
-use crate::sources::{
-    script::Script, 
-};
-
+use crate::sources::script::Script;
 
 use std::path::PathBuf;
 

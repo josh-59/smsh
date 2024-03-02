@@ -1,7 +1,7 @@
+mod constructs;
 mod line;
 mod shell;
 mod sources;
-mod constructs;
 
 use shell::Shell;
 

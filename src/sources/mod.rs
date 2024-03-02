@@ -11,11 +11,11 @@ use anyhow::Result;
 
 use super::line::Line;
 
+pub mod r#for;
 pub mod script;
+pub mod subshell;
 pub mod tty;
 pub mod user_function;
-pub mod subshell;
-pub mod r#for;
 
 // Used in Line struct to identify source
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -28,7 +28,7 @@ pub enum SourceKind {
 
 pub trait Source {
     fn get_line(&mut self) -> Result<Option<Line>>;
-    fn is_tty(&self) -> bool; 
+    fn is_tty(&self) -> bool;
     fn print_error(&mut self) -> Result<()>;
 }
 
@@ -39,21 +39,22 @@ pub struct Sources {
 
 impl Sources {
     pub fn new() -> Self {
-        Sources { sources: vec![], buffer: VecDeque::<Line>::new()}
+        Sources {
+            sources: vec![],
+            buffer: VecDeque::<Line>::new(),
+        }
     }
 
     pub fn get_line(&mut self) -> Result<Option<Line>> {
         if let Some(line) = self.buffer.pop_front() {
             Ok(Some(line))
         } else if let Some(mut source) = self.sources.pop() {
-            match source.get_line() { 
+            match source.get_line() {
                 Ok(Some(line)) => {
                     self.sources.push(source);
                     Ok(Some(line))
                 }
-                Ok(None) => {
-                    self.get_line()
-                }
+                Ok(None) => self.get_line(),
                 Err(e) => {
                     self.sources.push(source);
                     Err(e)
@@ -81,13 +82,13 @@ impl Sources {
             while let Some(line) = source.get_line()? {
                 if *line.source() == *source_kind && line.indentation() >= indent {
                     lines.push(line);
-            } else {
+                } else {
                     self.sources.push(source);
                     self.buffer.push_front(line);
                     break;
                 }
             }
-        } 
+        }
 
         Ok(lines)
     }
@@ -123,7 +124,6 @@ impl Sources {
         }
     }
 }
-
 
 // Determines if `text` is a complete logical line.  Ignores newlines
 fn is_complete(text: &str) -> bool {
@@ -184,7 +184,6 @@ fn is_complete(text: &str) -> bool {
 
     state == State::Unquoted && !found_escaped_newline
 }
-
 
 #[cfg(test)]
 mod test {
