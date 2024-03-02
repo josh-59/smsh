@@ -4,13 +4,6 @@
 
 use anyhow::{anyhow, Result};
 
-enum State {
-    OnFirstNum,
-    FoundFirstPeriod,
-    FoundSecondPeriod,
-    Invalid,
-}
-
 // TODO: Slice(Option<usize>, Option<usize>)
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Selection {
@@ -52,10 +45,18 @@ fn get_selector(text: &str) -> Option<(String, String)> {
 }
 
 fn determine_selection(selector: String) -> Result<Selection> {
+    enum State {
+        OnFirstNum,
+        FoundFirstPeriod,
+        FoundSecondPeriod,
+        Invalid,
+    }
+
     let mut first_num: usize = 0;
     let mut second_num: usize = 0;
     let mut state = State::OnFirstNum;
 
+    // TODO:  Change to selector.graphemes?  
     for ch in selector.chars() {
         match state {
             State::OnFirstNum => {
