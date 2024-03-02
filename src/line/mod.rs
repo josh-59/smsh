@@ -47,10 +47,10 @@ pub struct LineID {
 // terminating a line with a pipe operator.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Line {
+    line_id: LineID,
     raw_text: String, // Is a logical line
     tokens: Vec<Token>,
     line_type: LineType,
-    line_id: LineID,
     indentation: usize,
 }
 
@@ -72,14 +72,13 @@ impl Line {
             LineType::Empty
         };
 
-        // TODO:  This could be determined lazily, if not every Line needs to know its indentation
         let indentation = determine_indentation(&raw_text);
 
         Ok(Line {
-            raw_text,
-            line_type,
-            tokens,
             line_id,
+            raw_text,
+            tokens,
+            line_type,
             indentation,
         })
     }

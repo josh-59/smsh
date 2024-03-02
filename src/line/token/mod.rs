@@ -145,7 +145,7 @@ fn get_quote(text: &str) -> Result<(String, Quote)> {
     }
 }
 
-// Breaks rawline into parts according to quoting rules, yielding tokens.
+// Breaks `rawline` into parts according to quoting rules, yielding tokens.
 // Quotes and escapes are preserved; unquoted whitespace is removed
 // Selection remains appended to part.
 pub fn get_tokens(rawline: &str) -> Result<Vec<Token>> {
