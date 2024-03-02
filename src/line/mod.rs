@@ -154,7 +154,6 @@ impl Line {
         &self.raw_text
     }
 
-    // Todo:  Maybe this all could be done on a call to Line::new()?
     pub fn separate(&mut self) -> Result<()> {
         // Break logical line into parts according to quoting rules
         let mut tokens = Vec::<Token>::new();
