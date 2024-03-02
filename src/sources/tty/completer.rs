@@ -12,6 +12,8 @@ pub fn build_command_completer() -> Result<DefaultCompleter> {
     Ok(completer)
 }
 
+// TODO:  Remove 'unwrap' call,
+// Need a way to update this if a new command is installed
 fn get_commands() -> Result<Vec<String>> {
     let paths  = if let Some(os_string) = env::var_os("PATH") {
         let string = os_string.into_string().unwrap();
