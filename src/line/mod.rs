@@ -27,6 +27,7 @@ pub enum Construct {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum LineType {
     Normal,
+    Empty,
     ShellConstruct(Construct),
 }
 
@@ -48,7 +49,7 @@ pub struct LineID {
 pub struct Line {
     raw_text: String, // Is a logical line
     tokens: Vec<Token>,
-    line_type: Option<LineType>,
+    line_type: LineType,
     line_id: LineID,
     indentation: usize,
 }
@@ -60,13 +61,24 @@ impl Line {
             line_num,
         };
 
+        // Break logical line into parts according to quoting rules
+        let tokens = get_tokens(raw_text.as_str())?;
+
+        // Line type should be stated after it's been inspected for completeness
+        // and correctness.
+        let line_type = if tokens.len() > 0 {
+            determine_line_type(tokens[0].text())
+        } else {
+            LineType::Empty
+        };
+
         // TODO:  This could be determined lazily, if not every Line needs to know its indentation
         let indentation = determine_indentation(&raw_text);
 
         Ok(Line {
             raw_text,
-            line_type: None,
-            tokens: Vec::new(),
+            line_type,
+            tokens,
             line_id,
             indentation,
         })
@@ -88,22 +100,19 @@ impl Line {
     }
 
     pub fn execute(&mut self, smsh: &mut Shell) -> Result<()> {
-        if let Some(line_type) = &self.line_type {
-            match line_type {
-                LineType::Normal => {
-                    let mut pipeline = Pipeline::new(self, smsh)?;
-                    pipeline.execute(smsh)
-                }
-                LineType::ShellConstruct(c) => match c {
-                    Construct::If | Construct::Elif | Construct::Else => r#if(smsh, self),
-                    Construct::FunctionDefinition => r#fn(smsh, self),
-                    Construct::For => r#for(smsh, self),
-                    Construct::Let => r#let(smsh, self),
-                    Construct::While => r#while(smsh, self),
-                },
+        match &self.line_type {
+            LineType::Normal => {
+                let mut pipeline = Pipeline::new(self, smsh)?;
+                pipeline.execute(smsh)
             }
-        } else {
-            Ok(())
+            LineType::Empty => Ok(()),
+            LineType::ShellConstruct(c) => match c {
+                Construct::If | Construct::Elif | Construct::Else => r#if(smsh, self),
+                Construct::FunctionDefinition => r#fn(smsh, self),
+                Construct::For => r#for(smsh, self),
+                Construct::Let => r#let(smsh, self),
+                Construct::While => r#while(smsh, self),
+            },
         }
     }
 
@@ -141,37 +150,15 @@ impl Line {
     }
 
     pub fn is_elif(&self) -> bool {
-        self.line_type == Some(LineType::ShellConstruct(Construct::Elif))
+        self.line_type == LineType::ShellConstruct(Construct::Elif)
     }
 
     pub fn is_else(&self) -> bool {
-        self.line_type == Some(LineType::ShellConstruct(Construct::Else))
+        self.line_type == LineType::ShellConstruct(Construct::Else)
     }
 
     pub fn raw_text(&self) -> &str {
         &self.raw_text
-    }
-
-    pub fn separate(&mut self) -> Result<()> {
-        // Break logical line into parts according to quoting rules
-        let mut tokens = Vec::<Token>::new();
-        for token in get_tokens(&self.raw_text)? {
-            tokens.push(Token::new(token)?);
-        }
-
-        self.tokens = tokens;
-
-        // Line type should be stated after it's been inspected for completeness
-        // and correctness.
-        let line_type = if self.tokens.len() > 0 {
-            Some(determine_line_type(self.tokens[0].text()))
-        } else {
-            None
-        };
-
-        self.line_type = line_type;
-
-        Ok(())
     }
 
     pub fn select(&mut self) -> Result<()> {

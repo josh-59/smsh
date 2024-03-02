@@ -148,7 +148,7 @@ fn get_quote(text: &str) -> Result<(String, Quote)> {
 // Breaks rawline into parts according to quoting rules, yielding tokens.
 // Quotes and escapes are preserved; unquoted whitespace is removed
 // Selection remains appended to part.
-pub fn get_tokens(rawline: &str) -> Result<Vec<String>> {
+pub fn get_tokens(rawline: &str) -> Result<Vec<Token>> {
     #[derive(PartialEq, Eq, Clone, Copy)]
     enum State {
         SingleQuoted,
@@ -157,8 +157,8 @@ pub fn get_tokens(rawline: &str) -> Result<Vec<String>> {
         Unquoted,
     }
 
-    let mut parts = Vec::<String>::new();
     let mut part = String::new();
+    let mut tokens = Vec::<Token>::new();
 
     let mut state = State::Unquoted;
     let mut escaped_state: Option<State> = None;
@@ -168,7 +168,7 @@ pub fn get_tokens(rawline: &str) -> Result<Vec<String>> {
             State::Unquoted => match grapheme {
                 " " | "\t" => {
                     if !part.is_empty() {
-                        parts.push(part);
+                        tokens.push(Token::new(part)?);
                         part = String::new();
                     }
                 }
@@ -211,17 +211,10 @@ pub fn get_tokens(rawline: &str) -> Result<Vec<String>> {
         }
     }
     if !part.is_empty() {
-        parts.push(part);
+        tokens.push(Token::new(part)?);
     }
 
-    match state {
-        State::SingleQuoted => Err(anyhow!("Unmatched single quote. (This error occured in get_parts(), and should not happen. It is a bug!  Please report.)")),
-        State::DoubleQuoted => Err(anyhow!("Unmatched double quote. (This error occured in get_parts(), and should not happen. It is a bug!  Please report.)")),
-        State::Escaped => Err(anyhow!(
-            "Unresolved terminal escaped newline (This error occured in get_parts(), and should not happen. It is a bug!  Please report.)"
-        )),
-        State::Unquoted => Ok(parts),
-    }
+    Ok(tokens)
 }
 
 #[cfg(test)]
