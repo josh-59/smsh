@@ -149,7 +149,7 @@ mod test {
     }
 
     #[test]
-    fn _get_selection_test_1() {
+    fn determine_selection_1() {
         assert_eq!(
             Selection::Index(0),
             determine_selection("0".to_string()).unwrap()
@@ -157,7 +157,7 @@ mod test {
     }
 
     #[test]
-    fn _get_selection_test_2() {
+    fn determine_selection_2() {
         assert_eq!(
             Selection::Index(10),
             determine_selection("10".to_string()).unwrap()
@@ -165,7 +165,7 @@ mod test {
     }
 
     #[test]
-    fn _get_selection_test_3() {
+    fn determine_selection_3() {
         assert_eq!(
             Selection::Slice(0, 5),
             determine_selection("0..5".to_string()).unwrap()
@@ -173,7 +173,7 @@ mod test {
     }
 
     #[test]
-    fn _get_selection_test_4() {
+    fn determine_selection_4() {
         assert_eq!(
             Selection::Slice(0, 10),
             determine_selection("0..10".to_string()).unwrap()
@@ -181,7 +181,7 @@ mod test {
     }
 
     #[test]
-    fn _get_selection_test_5() {
+    fn determine_selection_5() {
         assert_eq!(
             Selection::Slice(10, 10),
             determine_selection("10..10".to_string()).unwrap()
@@ -189,7 +189,7 @@ mod test {
     }
 
     #[test]
-    fn _get_selection_test_6() {
+    fn determine_selection_6() {
         assert_eq!(
             Selection::Slice(0, 10),
             determine_selection("..10".to_string()).unwrap()
@@ -197,7 +197,7 @@ mod test {
     }
 
     #[test]
-    fn _get_selection_test_7() {
+    fn determine_selection_7() {
         assert_eq!(
             Selection::Slice(3, 0),
             determine_selection("3..".to_string()).unwrap()
@@ -205,21 +205,22 @@ mod test {
     }
 
     #[test]
-    fn _get_selection_test_8() {
+    fn determine_selection_8() {
         assert!(determine_selection("1...10".to_string()).is_err());
     }
 
     #[test]
-    fn _get_selection_test_9() {
+    fn determine_selection_9() {
         assert!(determine_selection("...10".to_string()).is_err());
     }
 
     #[test]
-    fn _get_selection_test_10() {
+    fn determine_selection_10() {
         assert!(determine_selection("10...".to_string()).is_err());
     }
+
     #[test]
-    fn _get_selection_test_11() {
+    fn determine_selection_11() {
         assert!(determine_selection("a...b".to_string()).is_err());
     }
 }
