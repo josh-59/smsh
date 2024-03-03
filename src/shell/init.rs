@@ -5,7 +5,7 @@ use crate::sources::script::Script;
 
 use std::path::PathBuf;
 
-// Again, we do not want this function to fail.
+// We do not want this function to fail.
 pub fn push_interactive_init_script(smsh: &mut Shell) {
     match BaseDirectories::new() {
         Ok(base_dirs) => {
