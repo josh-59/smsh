@@ -254,10 +254,10 @@ mod test {
     use crate::shell::Shell;
 
     #[test]
-    fn create_word_1() {
+    fn new_token_1() {
         let cmd = "cat".to_string();
 
-        let word = Token {
+        let token = Token {
             text: "cat".to_string(),
             quote: Quote::Unquoted,
             expansion: Expansion::None,
@@ -266,14 +266,14 @@ mod test {
             selected_text: Vec::<String>::new(),
         };
 
-        assert_eq!(word, Token::new(cmd).unwrap());
+        assert_eq!(token, Token::new(cmd).unwrap());
     }
 
     #[test]
-    fn create_word_2() {
+    fn new_token_2() {
         let cmd = "{cmd}".to_string();
 
-        let word = Token {
+        let token = Token {
             text: "cmd".to_string(),
             quote: Quote::Unquoted,
             expansion: Expansion::Variable,
@@ -282,14 +282,14 @@ mod test {
             selected_text: Vec::<String>::new(),
         };
 
-        assert_eq!(word, Token::new(cmd).unwrap());
+        assert_eq!(token, Token::new(cmd).unwrap());
     }
 
     #[test]
-    fn create_word_3() {
+    fn new_token_3() {
         let cmd = "!{cmd}".to_string();
 
-        let word = Token {
+        let token = Token {
             text: "cmd".to_string(),
             quote: Quote::Unquoted,
             expansion: Expansion::Subshell,
@@ -298,14 +298,14 @@ mod test {
             selected_text: Vec::<String>::new(),
         };
 
-        assert_eq!(word, Token::new(cmd).unwrap());
+        assert_eq!(token, Token::new(cmd).unwrap());
     }
 
     #[test]
-    fn create_word_4() {
+    fn new_token_4() {
         let cmd = "!{{cmd}}".to_string();
 
-        let word = Token {
+        let token = Token {
             text: "{cmd}".to_string(),
             quote: Quote::Unquoted,
             expansion: Expansion::Subshell,
@@ -314,14 +314,14 @@ mod test {
             selected_text: Vec::<String>::new(),
         };
 
-        assert_eq!(word, Token::new(cmd).unwrap());
+        assert_eq!(token, Token::new(cmd).unwrap());
     }
 
     #[test]
-    fn create_word_5() {
+    fn new_token_5() {
         let cmd = "!{{cmd}}[1]".to_string();
 
-        let word = Token {
+        let token = Token {
             text: "{cmd}".to_string(),
             quote: Quote::Unquoted,
             expansion: Expansion::Subshell,
@@ -330,14 +330,14 @@ mod test {
             selected_text: Vec::<String>::new(),
         };
 
-        assert_eq!(word, Token::new(cmd).unwrap());
+        assert_eq!(token, Token::new(cmd).unwrap());
     }
 
     #[test]
-    fn create_word_6() {
+    fn new_token_6() {
         let cmd = "!{{cmd}}[1..]".to_string();
 
-        let word = Token {
+        let token = Token {
             text: "{cmd}".to_string(),
             quote: Quote::Unquoted,
             expansion: Expansion::Subshell,
@@ -346,14 +346,14 @@ mod test {
             selected_text: Vec::<String>::new(),
         };
 
-        assert_eq!(word, Token::new(cmd).unwrap());
+        assert_eq!(token, Token::new(cmd).unwrap());
     }
 
     #[test]
-    fn create_word_7() {
+    fn new_token_7() {
         let cmd = "'!{{cmd}}[1..]'".to_string();
 
-        let word = Token {
+        let token = Token {
             text: "!{{cmd}}[1..]".to_string(),
             quote: Quote::SingleQuoted,
             expansion: Expansion::None,
@@ -362,7 +362,7 @@ mod test {
             selected_text: Vec::<String>::new(),
         };
 
-        assert_eq!(word, Token::new(cmd).unwrap());
+        assert_eq!(token, Token::new(cmd).unwrap());
     }
 
     #[test]
@@ -376,5 +376,18 @@ mod test {
         word.expand(&mut smsh).unwrap();
 
         assert_eq!(word.text, "cat".to_string())
+    }
+
+    #[test]
+    fn get_tokens1() {
+        let line = "echo one two three";
+        let tokens = vec![
+            Token::new("echo".to_string()).unwrap(),
+            Token::new("one".to_string()).unwrap(),
+            Token::new("two".to_string()).unwrap(),
+            Token::new("three".to_string()).unwrap(),
+        ];
+
+        assert_eq!(tokens, get_tokens(line).unwrap());
     }
 }
