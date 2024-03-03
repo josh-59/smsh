@@ -172,6 +172,7 @@ pub fn get_tokens(rawline: &str) -> Result<Vec<Token>> {
         DoubleQuoted,
         Escaped,
         Unquoted,
+        Expansion,
     }
 
     let mut part = String::new();
@@ -202,6 +203,10 @@ pub fn get_tokens(rawline: &str) -> Result<Vec<Token>> {
                     escaped_state = Some(State::Unquoted);
                     state = State::Escaped;
                 }
+                "{" => {
+                    part.push_str(grapheme);
+                    state = State::Expansion;
+                }
                 _ => {
                     part.push_str(grapheme);
                 }
@@ -224,6 +229,15 @@ pub fn get_tokens(rawline: &str) -> Result<Vec<Token>> {
             State::Escaped => {
                 part.push_str(grapheme);
                 state = escaped_state.unwrap();
+            }
+            State::Expansion => {
+                part.push_str(grapheme);
+                if grapheme == "\\" {
+                    escaped_state = Some(State::Expansion);
+                    state = State::Escaped;
+                } else if grapheme == "}" {
+                    state = State::Unquoted;
+                }
             }
         }
     }
