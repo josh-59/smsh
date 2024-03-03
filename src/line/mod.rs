@@ -64,8 +64,6 @@ impl Line {
         // Break logical line into parts according to quoting rules
         let tokens = get_tokens(raw_text.as_str())?;
 
-        // Line type should be stated after it's been inspected for completeness
-        // and correctness.
         let line_type = if tokens.len() > 0 {
             determine_line_type(tokens[0].text())
         } else {
