@@ -29,6 +29,8 @@ pub enum Expansion {
     Subshell,
 }
 
+// TODO:  Eliminate 'separated_text' field;
+// also, `text` should be a &str
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Token {
     text: String,
