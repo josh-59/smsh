@@ -14,7 +14,8 @@ Expansion Types:
     f{}     Filename Expansion
     t{}     Terminal Expansion
 
-### Argument Expansion
+Variable Expansion
+------------------
 
 For example:
 
@@ -46,22 +47,20 @@ Some variable names are special, and cannot be assigned to by `let`.
 `{rv}`
     Expands to the return value of the previously executed command.
 
-[Possibly]
-`{options}`
-    Expands to all arguments beginning with `--` (e.g., all options).
+Subshell Expansion
+------------------
 
-`{1..-options}`
-    Expands to all argument that are *not* options.
-
-
-### Subshell Expansion
 User-defined variable expansion is pretty self-explanatory, so we'll move right
 along to subshell expansion.  Subshell expansion does exactly what you'd expect
 it to do-- it launches a subshell, executes the commands and captures stdout;
 said captured output then replaces the subshell expansion expression.
 
+So,
+`${echo one two three}` becomes `one two three`.  
 
-### Filename Expansion
+
+Filename Expansion
+------------------
 
 We like regex!  So regex it is.  ...with one small modification.  
 
@@ -82,7 +81,9 @@ Examples:
     Expands to all files in current working directory.
 
 
-### Terminal Expansion
+Terminal Expansion
+------------------
+
 To make prompt customization simpler, we include a special expansion type
 
 `t{bell}`
