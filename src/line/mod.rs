@@ -247,3 +247,91 @@ fn determine_indentation(line: &str) -> usize {
 
     indentation
 }
+
+/*
+// Breaks `rawline` into parts according to quoting rules, yielding parts.
+// Quotes and escapes are preserved; unquoted whitespace is removed
+// Selection remains appended to part.
+pub fn get_parts(rawline: &str) -> Result<Vec<&str>> {
+    #[derive(PartialEq, Eq, Clone, Copy)]
+    enum State {
+        SingleQuoted,
+        DoubleQuoted,
+        Escaped,
+        Unquoted,
+        Expansion,
+    }
+
+    let mut part = String::new();
+    let mut tokens = Vec::<Token>::new();
+
+    let mut state = State::Unquoted;
+    let mut escaped_state: Option<State> = None;
+
+    for grapheme in rawline.graphemes(true) {
+        match state {
+            State::Unquoted => match grapheme {
+                " " | "\t" => {
+                    if !part.is_empty() {
+                        tokens.push(Token::new(part)?);
+                        part = String::new();
+                    }
+                }
+                "\'" => {
+                    part.push_str(grapheme);
+                    state = State::SingleQuoted;
+                }
+                "\"" => {
+                    part.push_str(grapheme);
+                    state = State::DoubleQuoted;
+                }
+                "\\" => {
+                    part.push_str(grapheme);
+                    escaped_state = Some(State::Unquoted);
+                    state = State::Escaped;
+                }
+                "{" => {
+                    part.push_str(grapheme);
+                    state = State::Expansion;
+                }
+                _ => {
+                    part.push_str(grapheme);
+                }
+            },
+            State::SingleQuoted => {
+                part.push_str(grapheme);
+                if grapheme == "\'" {
+                    state = State::Unquoted;
+                }
+            }
+            State::DoubleQuoted => {
+                part.push_str(grapheme);
+                if grapheme == "\"" {
+                    state = State::Unquoted;
+                } else if grapheme == "\\" {
+                    escaped_state = Some(State::DoubleQuoted);
+                    state = State::Escaped;
+                }
+            }
+            State::Escaped => {
+                part.push_str(grapheme);
+                state = escaped_state.unwrap();
+            }
+            State::Expansion => {
+                part.push_str(grapheme);
+                if grapheme == "\\" {
+                    escaped_state = Some(State::Expansion);
+                    state = State::Escaped;
+                } else if grapheme == "}" {
+                    state = State::Unquoted;
+                }
+            }
+        }
+    }
+    if !part.is_empty() {
+        tokens.push(Token::new(part)?);
+    }
+
+    Ok(tokens)
+}
+*/
