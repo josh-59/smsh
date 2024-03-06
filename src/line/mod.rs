@@ -248,7 +248,6 @@ fn determine_indentation(line: &str) -> usize {
     indentation
 }
 
-/*
 // Breaks `rawline` into parts according to quoting rules, yielding parts.
 // Quotes and escapes are preserved; unquoted whitespace is removed
 // Selection remains appended to part.
@@ -262,50 +261,45 @@ pub fn get_parts(rawline: &str) -> Result<Vec<&str>> {
         Expansion,
     }
 
-    let mut part = String::new();
-    let mut tokens = Vec::<Token>::new();
+    let mut i: usize = 0;
+    let mut last: usize = 0;
+    let mut parts = Vec::<&str>::new();
 
     let mut state = State::Unquoted;
     let mut escaped_state: Option<State> = None;
 
-    for grapheme in rawline.graphemes(true) {
+    for (j, grapheme) in rawline.grapheme_indices(true) {
         match state {
             State::Unquoted => match grapheme {
                 " " | "\t" => {
-                    if !part.is_empty() {
-                        tokens.push(Token::new(part)?);
-                        part = String::new();
+                    if j > i {
+                        let s = &rawline[i..j];
+                        parts.push(s);
                     }
+
+                    i = j + 1;
                 }
                 "\'" => {
-                    part.push_str(grapheme);
                     state = State::SingleQuoted;
                 }
                 "\"" => {
-                    part.push_str(grapheme);
                     state = State::DoubleQuoted;
                 }
                 "\\" => {
-                    part.push_str(grapheme);
                     escaped_state = Some(State::Unquoted);
                     state = State::Escaped;
                 }
                 "{" => {
-                    part.push_str(grapheme);
                     state = State::Expansion;
                 }
-                _ => {
-                    part.push_str(grapheme);
-                }
+                _ => {}
             },
             State::SingleQuoted => {
-                part.push_str(grapheme);
                 if grapheme == "\'" {
                     state = State::Unquoted;
                 }
             }
             State::DoubleQuoted => {
-                part.push_str(grapheme);
                 if grapheme == "\"" {
                     state = State::Unquoted;
                 } else if grapheme == "\\" {
@@ -314,11 +308,9 @@ pub fn get_parts(rawline: &str) -> Result<Vec<&str>> {
                 }
             }
             State::Escaped => {
-                part.push_str(grapheme);
                 state = escaped_state.unwrap();
             }
             State::Expansion => {
-                part.push_str(grapheme);
                 if grapheme == "\\" {
                     escaped_state = Some(State::Expansion);
                     state = State::Escaped;
@@ -327,11 +319,44 @@ pub fn get_parts(rawline: &str) -> Result<Vec<&str>> {
                 }
             }
         }
-    }
-    if !part.is_empty() {
-        tokens.push(Token::new(part)?);
+        last = j;
     }
 
-    Ok(tokens)
+    if last > i {
+        let s = &rawline[i..];
+        parts.push(s);
+    }
+
+    match state {
+        State::SingleQuoted => Err(anyhow!("Unmatched single quote")),
+        State::DoubleQuoted => Err(anyhow!("Unmatched double quote")),
+        State::Escaped => Err(anyhow!("Line terminates in escape character")),
+        State::Expansion => Err(anyhow!("Unmatched expansion brace")),
+        State::Unquoted => Ok(parts),
+    }
 }
-*/
+
+mod test {
+    use super::*;
+
+    #[test]
+    fn get_parts_1() {
+        let line = "";
+        assert_eq!(Vec::<&str>::new(), get_parts(line).unwrap());
+    }
+
+    #[test]
+    fn get_parts_2() {
+        let line = "echo one two three";
+        let v = vec!["echo", "one", "two", "three"];
+        assert_eq!(v, get_parts(line).unwrap());
+    }
+
+    #[test]
+    fn get_parts_3() {
+        let line = "echo   one two three  ";
+        let v = vec!["echo", "one", "two", "three"];
+        assert_eq!(v, get_parts(line).unwrap());
+    }
+
+}
