@@ -1,9 +1,3 @@
-
-    Seems like the design of this shell is wrong.  Seems like it should have
-    an "interpretation" section, like a parser, that breaks the line into 
-    useful bits, and passes it to back up in a partially-rendered form.  Like,
-    "The line is *of the form* so and so.  Maybe
-
     echo {var} >> file 
                                     --Broken by whitespace into parts
     [part] [part] [part] [part]
@@ -13,16 +7,10 @@
     [command] [word] [redirection]
                                     --Execute!  
 
-    enum Command{
-        Construct(Construct),
-        Builtin(String), // Or reference to function
-        Function(String), 
-        ExternalCommand(Filename), // Or other reference
-    }
-
 
     Functions that take place concurrently (across Units):
         - Quote resolution
+            - [text][quoted-text][text][quoted-text]...
         - Expansion: inspection, interpretation
         - Selection
         - Is valid command
@@ -30,23 +18,39 @@
             fn ______( str: text, bool: is_command)
 
     Functions that take place after units have join'ed:  
-        - Word Math
-        - Selection
-        - Redirection interpretation
-
-    enum ExpansionType {
-        Variable
-        FilePath
-        Subshell
-    }
+        - Word Math // Only two operators, so far-- maybe, "matches"? ~
+        - Redirection validation, interpretation
 
     enum Redir {
-        
+        FROM(fd), TO(fd)
+        FROM(fd), TO(filename)
+        FROM(filename), TO(fd)
+    } // ...be very careful about opening the right file to the right file 
+      // descriptor...
+
+      Could just be FROM(filename), TO(filename) (i.e., a 2-tuple) if `fd`
+      can be mapped to a `filename`.  Which, `/proc/{PID}/{fd}` expands into...
+            Or we could open the file and associate it with an `fd`.
+
+      Redirection Precidence 
+      ----------------------
+
+      `2&>1 1>{filename}` happens intuitively.  
+
+
+    enum Comm{
+        ShellConstruct(Construct), // if, elif, else, for, while, match, etc.
+        Builtin(String), // Or reference to function
+        UserFunction(String),  // Or reference, if possible
+        ExternalCommand(Filename), // Or other reference
+        NotFound, // Only NotFound after a *thorough* inspection of (actual) directories on PATH
     }
 
-    enum Word {  // Expansion has already taken place.  
-        Command
-        Raw(text),
+
+    enum Token {  // Expansion has already taken place.  
+        Word(text), // The simplest case `text` => `text`
+        Command(Comm),
+        IsPython,
         DoubleQuoted([Word], selector),     //Recursive call needed... All the way 
         Quoted(text),                       //back to the begining!
         Redirection(Redir),
