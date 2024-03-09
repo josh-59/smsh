@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use super::Source;
+use super::{Source, SourceKind};
 use crate::line::{Line, LineID};
 
 #[derive(Clone)]
@@ -75,8 +75,8 @@ impl Source for For {
         }
     }
 
-    fn is_tty(&self) -> bool {
-        false
+    fn get_source_kind(&self) -> SourceKind{
+        self.for_line_identifier.source_kind.clone()
     }
 
     fn print_error(&mut self) -> Result<()> {

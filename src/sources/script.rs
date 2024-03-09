@@ -56,8 +56,13 @@ impl Source for Script {
         }
     }
 
-    fn is_tty(&self) -> bool {
-        false
+    fn get_source_kind(&self) -> SourceKind {
+        let p = match self.path.to_str() {
+            Some(p) => { p.to_string() }
+            None  => { "".to_string() }
+        };
+
+        SourceKind::Script(p)
     }
 
     fn print_error(&mut self) -> Result<()> {

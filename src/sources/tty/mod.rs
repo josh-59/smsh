@@ -94,8 +94,8 @@ impl Source for Tty {
         }
     }
 
-    fn is_tty(&self) -> bool {
-        true
+    fn get_source_kind(&self) -> SourceKind {
+        SourceKind::Tty
     }
 
     fn print_error(&mut self) -> Result<()> {

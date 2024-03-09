@@ -28,7 +28,7 @@ pub enum SourceKind {
 
 pub trait Source {
     fn get_line(&mut self) -> Result<Option<Line>>;
-    fn is_tty(&self) -> bool;
+    fn get_source_kind(&self) -> SourceKind;
     fn print_error(&mut self) -> Result<()>;
 }
 
@@ -115,7 +115,7 @@ impl Sources {
 
     pub fn backtrace(&mut self) {
         while let Some(mut source) = self.sources.pop() {
-            if source.is_tty() {
+            if source.get_source_kind() == SourceKind::Tty {
                 self.sources.push(source);
                 break;
             } else {

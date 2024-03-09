@@ -43,8 +43,8 @@ impl Source for UserFunction {
         }
     }
 
-    fn is_tty(&self) -> bool {
-        false
+    fn get_source_kind(&self) -> SourceKind {
+        SourceKind::UserFunction(self.fn_name.clone())
     }
 
     fn print_error(&mut self) -> Result<()> {

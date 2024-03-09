@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use super::Source;
+use super::{Source, SourceKind};
 use crate::line::Line;
 
 // Used to push lines back onto the execution stack
@@ -25,8 +25,8 @@ impl Source for SubshellSource {
         }
     }
 
-    fn is_tty(&self) -> bool {
-        false
+    fn get_source_kind(&self) -> SourceKind {
+        SourceKind::Subshell
     }
 
     fn print_error(&mut self) -> Result<()> {
