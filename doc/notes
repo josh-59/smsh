@@ -7,19 +7,22 @@
     [command] [word] [redirection]
                                     --Execute!  
 
+    Functions that take place before concurrent handling:
+        - get_parts() 
+            Break line into parts 
 
-    Functions that take place concurrently (across Units):
+    Functions that take place concurrently (across parts):
         - Quote resolution
             - [text][quoted-text][text][quoted-text]...
         - Expansion: inspection, interpretation
         - Selection
-        - Is valid command
-            ...You just pass that information *in*:  
-            fn ______( str: text, bool: is_command)
 
     Functions that take place after units have join'ed:  
         - Word Math // Only two operators, so far-- maybe, "matches"? ~
         - Redirection validation, interpretation
+        - Is valid command (should be verified for each pipe element)
+            ...You just pass that information *in*:  
+            fn ______( str: text, bool: is_command)
 
     enum Redir {
         FROM(fd), TO(fd)
@@ -32,13 +35,8 @@
       can be mapped to a `filename`.  Which, `/proc/{PID}/{fd}` expands into...
             Or we could open the file and associate it with an `fd`.
 
-      Redirection Precidence 
-      ----------------------
 
-      `2&>1 1>{filename}` happens intuitively.  
-
-
-    enum Comm{
+    enum Command{
         ShellConstruct(Construct), // if, elif, else, for, while, match, etc.
         Builtin(String), // Or reference to function
         UserFunction(String),  // Or reference, if possible

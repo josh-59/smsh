@@ -1,5 +1,5 @@
 1) Multiline block entering:
-    Prompt should indicate indentation level:
+    Prompt could indicate indentation level:
 
     $ if foo:
     >     for bar in baz:
@@ -8,8 +8,8 @@
     >>
     $ 
 
-    We want to allow empty lines in blocks of input, to make scripts more 
-    legible; we also want two empty lines to demarcate the end of a block.
+    Empty lines should be allowed in blocks of input, to make scripts more 
+    legible; two empty lines should demarcate the end of a block.
 
 2) Apply separation and selection logic to strings
     e.g., 
@@ -23,15 +23,11 @@
 4) Implement `exec` builtin: Replace current (shell) process with command
 
 5) `let` builtin should accept either 'name = value' or 'name=value'
+    a) Maybe 'load' builtin, to read name=value pairs from a file? 
 
-    $ # 'load' a file, where file is a collection of name=value strings.
-    $ # Works for 'name = value' or 'name    = value' or 'name=value' or....
-    $ for line in ${cat file | split}:
-    >     let {line} 
+6) "Arrays" module:  Implement functions for push, pop, append, etcetera?
 
-6) "Arrays" module:  Implement functions for push, pop, append, etcetera
-
-7) `let mut var = val` ?  
+7) `let var = val` ?  
     Bash has a special command for this, `readonly`
         ...But, such a line is useless if later on you can simply call 
             `let --make-mut var`

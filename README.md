@@ -19,40 +19,30 @@ the Rust ecosystem.
 ## Features
 
 __Strictly Explicit Expansion.__  No aliasing here!  All expansion occurs
-within braces `{}`, with expansion types being denoted by leading
-characters.  For example, `e{}` denotes environment variable expansion:
-
-```
-$ echo e{PATH}
-/usr/local/sbin:/usr/local/bin:/usr/bin
-```
+within braces `{}`, with different expansion types being denoted by leading
+characters.  For example, `${}` denotes subshell expansion:
 
 __Verbose Error Reporting.__ No more "Syntax error near unexpected token"!
 The Rust compiler does CLI error reporting right, and we want to be like Rust:
 
 ```
-$ echo e{PATH
-smsh: echo e{PATH
+$ echo {PATH
+smsh: echo {PATH
             ^ Unmatched expansion brace
 ```
 
-__Modular.__ `smsh` respects the Unix Philosophy by 
-executing external commands wherever possible:  
+__Modular.__ `smsh` can accomodate new and different modules.  For instance, the `file` module contains builtins for testing files, so that we write something like,
 
 ```
-$ if test -e direction:
-    echo `smsh` has direction!
-`smsh` has direction!
+$ load-mod files
+$ if file-exists foo:
+>   # Do stuff
 ```
-
 
 ## Project Status
 
-Entering 'Alpha' Status.  Major features are present and working, 
-but we're still getting our wheels under us.
-
+Mostly abandoned, for lack of skill.  Major features are present and working, though.  
 
 ## Contributing
 
-Contributions are always welcome!
-Ideas and suggestions are welcome as-well.
+Contributions are welcome!  Ideas and suggestions are welcome as-well.
