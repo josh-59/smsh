@@ -28,7 +28,7 @@ The Rust compiler does CLI error reporting right, and we want to be like Rust:
 ```
 $ echo {PATH
 smsh: echo {PATH
-            ^ Unmatched expansion brace
+           ^ Unmatched expansion brace
 ```
 
 __Modular.__ `smsh` can accomodate new and different modules.  For instance, the `file` module contains builtins for testing files, so that we write something like,
@@ -41,7 +41,7 @@ $ if file-exists foo:
 
 ## Project Status
 
-Mostly abandoned, for lack of skill.  Major features are present and working, though.  
+Mostly abandoned.  Major features are present and working, though.  
 
 ## Contributing
 
